@@ -194,19 +194,6 @@ class OMXState(object):
 
 if __name__ == '__main__':
 	from StringIO import StringIO
-	foot = Template('foo', {'@id' : 'uid', 'bar' : 'baba'}, lambda uid=None, baba=None: ('foo', uid, baba))
-	bart = Template('bar', {'text()' : 'inner'}, lambda inner=None: ('bar', inner))
-	omx = OMX((foot,bart), 'foo')
-	v = omx.load(StringIO('<foo id="buba"><bar>derp</bar></foo>'))
-	print v
-
-	roott = Template('root', {'items/item' : 'items'},
-		lambda items=None: ('root', dict(items)))
-	itemtt = Template('item', {'@key' : 'key', 'text()' : 'value'},
-		lambda key=None,value=None: (key, value))
-	omx = OMX((roott, itemtt), 'root')
-	v = omx.load(StringIO('<root><items><item key="foo">fooz</item><item key="bar">barz</item></items></root>'))
-	print v
 
 	roott = Template('root', {'persons/person/@name' : 'names'},
 		lambda names=None: ('root', names))
