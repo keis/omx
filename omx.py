@@ -97,6 +97,7 @@ class OMXState(object):
 		self.path = []
 		self.elemtails = []
 		self.targets = {}
+		self.context = {'ids' : {}}
 
 
 	def add_target(self, path, name):
@@ -161,7 +162,10 @@ class OMXState(object):
 		if target is not None:
 			# Create TemplateData instance to collect data of this element
 			template = self.omx.get_template(self.path)
-			target.data.append(TemplateData(template, self))
+			data = TemplateData(template, self)
+			target.data.append(data)
+			if 'id' in element.attrib:
+				self.context['ids'][element.attrib['id']] = data
 
 		# Fill attribute targets
 		for k,v in element.attrib.items():
@@ -178,6 +182,7 @@ class OMXState(object):
 	def pop(self, element):
 		assert self.path[-1] == element.tag
 
+		# Fill text target
 		tails = self.elemtails.pop()
 		try:
 			target = self.get_target(self.path + ['text()'])
@@ -191,6 +196,13 @@ class OMXState(object):
 		if len(self.elemtails) > 0:
 			self.elemtails[-1].append(element.tail or '')
 
+		# Fill context target
+		try:
+			target = self.get_target(self.path + ['context()'])
+			target.data = self.context
+		except KeyError:
+			pass
+
 		target = self.get_target()
 
 		self.path.pop()
@@ -202,7 +214,10 @@ class OMXState(object):
 		self.prune_targets(target.data[-1])
 
 		values = dict([(t.name, t.data) for t in target.data[-1].values])
-		target.data[-1] = target.data[-1].template.factory(**values)
+		obj = target.data[-1].template.factory(**values)
+		target.data[-1] = obj
+		if 'id' in element.attrib:
+			self.context['ids'][element.attrib['id']] = obj
 
 		element.clear()
 

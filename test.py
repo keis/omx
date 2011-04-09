@@ -117,5 +117,32 @@ class Multitarget(OMXTest):
 		result = omx.load(self.data)
 		self.assertEqual(result, ["hello", "world", "!"])
 
+class Context(OMXTest):
+	xmldata = '<root><foo id="FOO">test</foo><bar id="BAR"/></root>'
+
+	def test_context(self):
+		roott = Template('root', {'foo' : 'foo', 'bar' : 'bar'},
+			lambda foo=None, bar=None: bar)
+		foot = Template('foo', {'context()' : 'context', 'text()' : 'text'},
+			lambda context=None, text=None: context.update({'grisapa' : ''.join(text)}))
+		bart = Template('bar', {'context()' : 'context'},
+			lambda context=None: context['grisapa'].upper())
+		omx = OMX((roott, foot, bart), 'root')
+
+		result = omx.load(self.data)
+		self.assertEqual(result, ['TEST'])
+
+	def test_ids(self):
+		roott = Template('root', {'foo' : 'foo', 'bar' : 'bar', 'context()' : 'context'},
+			lambda foo=None, bar=None, context=None: context['ids'].keys())
+		foot = Template('foo', {},
+			lambda: 'foo')
+		bart = Template('bar', {},
+			lambda: 'bar')
+		omx = OMX((roott, foot, bart), 'root')
+
+		result = omx.load(self.data)
+		self.assertEqual(result, ['FOO', 'BAR'])
+
 if __name__ == '__main__':
 	unittest.main()
