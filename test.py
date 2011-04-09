@@ -3,7 +3,7 @@
 import unittest
 from StringIO import StringIO
 
-from omx import OMX, Template
+from omx import OMX, Template, template
 
 class OMXTest(unittest.TestCase):
 	def setUp(self):
@@ -56,7 +56,7 @@ class Basic(OMXTest):
 
 		self.assertEqual(result, {'uid' : 'buba', 'bar' : [None,None]})
 
-class Feature(OMXTest):
+class Intermediate(OMXTest):
 	xmldata = '<root><items><item key="foo">fooz</item><item key="bar">barz</item></items></root>'
 
 	def test_intermediate(self):
@@ -78,6 +78,44 @@ class Feature(OMXTest):
 		result = omx.load(self.data)
 		self.assertEqual(result[0], 'root')
 		self.assertEqual(result[1], ['foo', 'bar'])
+
+class Multitarget(OMXTest):
+	xmldata = '<root><foo>hello</foo><bar>world</bar><foo>!</foo></root>'
+
+	def test_multitarget(self):
+		roott = Template('root', {'foo|bar' : 'fb'},
+			lambda fb=None: fb)
+		foot = Template('foo', {},
+			lambda: 'foo')
+		bart = Template('bar', {},
+			lambda: 'bar')
+		omx = OMX((roott, foot, bart), 'root')
+
+		result = omx.load(self.data)
+		self.assertEqual(result, ['foo', 'bar', 'foo'])
+
+	def test_multitarget_text(self):
+		roott = Template('root', {'foo|bar' : 'fb'},
+			lambda fb=None: ' '.join(fb))
+		foot = Template('foo', {'text()' : 'text'},
+			lambda text=None: ''.join(text))
+		bart = Template('bar', {'text()' : 'text'},
+			lambda text=None: ''.join(text))
+		omx = OMX((roott, foot, bart), 'root')
+
+		result = omx.load(self.data)
+		self.assertEqual(result, "hello world !")
+
+	def test_multitarget_text_s(self):
+		@template('root', {'foo/text()|bar/text()' : 'fb'})
+		def roott(fb=None):
+			r = []
+			map(r.extend, fb)
+			return r
+		omx = OMX((roott,), 'root')
+
+		result = omx.load(self.data)
+		self.assertEqual(result, ["hello", "world", "!"])
 
 if __name__ == '__main__':
 	unittest.main()

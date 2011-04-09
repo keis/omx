@@ -41,6 +41,11 @@ class Template(object):
 		self.factory = factory
 
 
+def template(name, targets):
+	def decorator(func):
+		return Template(name, targets, func)
+	return decorator
+
 class TemplateData(object):
 	''' Collects the data need to create a object as defined by 'template'
 		When created registers targets for sub-objects with the OMXState.
@@ -99,21 +104,23 @@ class OMXState(object):
 			in new Target named 'name'. Returns the new Target instance.
 		'''
 
-		singleton = path[0] == '@' or path == 'text()'
-		path = tuple(self.path + path.split('/'))
+		paths = [tuple(self.path + p.strip().split('/')) for p in path.split('|')]
+		singleton = len(paths) == 1 and (path[0] == '@' or path == 'text()')
 		target = Target(name, singleton)
 
 		# Currently only supports one target per element
 		# May change if a proper usecase is found
-		if path in self.targets and self.targets[path] is not None:
-			raise Exception("Path already claimed (%s %s)", (path, name))
+		for path in paths:
+			if path in self.targets and self.targets[path] is not None:
+				raise Exception("Path already claimed (%s %s)", (path, name))
 
-		self.targets[path] = target
+		for path in paths:
+			self.targets[path] = target
 
-		# Add null targets for unclaimed intermediate steps
-		for l in range(len(path),0,-1):
-			if path[:l] not in self.targets:
-				self.targets[path[:l]] = None
+			# Add null targets for unclaimed intermediate steps
+			for l in range(len(path),0,-1):
+				if path[:l] not in self.targets:
+					self.targets[path[:l]] = None
 
 		return target
 
