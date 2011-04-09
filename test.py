@@ -10,7 +10,7 @@ class OMXTest(unittest.TestCase):
 		self.data = StringIO(self.xmldata)
 
 class Basic(OMXTest):
-	xmldata = '<foo id="buba"><bar>one</bar><bar>two</bar></foo>'
+	xmldata = '<foo id="buba">Text<bar>one</bar>TEXT<bar>two</bar>text</foo>'
 
 	def test_attibutes(self):
 		foot = Template('foo', {'@id' : 'uid', 'bar' : 'bar'},
@@ -27,12 +27,23 @@ class Basic(OMXTest):
 		foot = Template('foo', {'bar' : 'bar'},
 			lambda bar=None: bar)
 		bart = Template('bar', {'text()' : 'text'},
-			lambda text=None: text)
+			lambda text=None: ''.join(text))
 		omx = OMX((foot,bart), 'foo')
 
 		result = omx.load(self.data)
 
 		self.assertEqual(result, ['one', 'two'])
+
+	def test_tail_text(self):
+		foot = Template('foo', {'text()' : 'text', 'bar' : 'bar'},
+			lambda text=None, bar=None: ''.join(text))
+		bart = Template('bar', {},
+			lambda: None)
+		omx = OMX((foot,bart), 'foo')
+
+		result = omx.load(self.data)
+
+		self.assertEqual(result, 'TextTEXTtext')
 
 	def test_dict_factory(self):
 		foot = Template('foo', {'@id' : 'uid', 'bar' : 'bar'},
@@ -52,7 +63,7 @@ class Feature(OMXTest):
 		roott = Template('root', {'items/item' : 'items'},
 			lambda items=None: ('root', dict(items)))
 		itemtt = Template('item', {'@key' : 'key', 'text()' : 'value'},
-			lambda key=None,value=None: (key, value))
+			lambda key=None,value=None: (key, ''.join(value)))
 		omx = OMX((roott, itemtt), 'root')
 
 		result = omx.load(self.data)

@@ -90,6 +90,7 @@ class OMXState(object):
 	def __init__(self, omx):
 		self.omx = omx
 		self.path = []
+		self.elemtails = []
 		self.targets = {}
 
 
@@ -148,6 +149,7 @@ class OMXState(object):
 			raise Exception('SKIP not implemented')
 
 		self.path.append(element.tag)
+		self.elemtails.append([])
 
 		if target is not None:
 			# Create TemplateData instance to collect data of this element
@@ -169,14 +171,18 @@ class OMXState(object):
 	def pop(self, element):
 		assert self.path[-1] == element.tag
 
+		tails = self.elemtails.pop()
 		try:
 			target = self.get_target(self.path + ['text()'])
+			text = [element.text or ''] + tails
 			if target.singleton:
-				target.data = element.text
+				target.data = text
 			else:
-				target.data.append(element.text)
+				target.data.append(text)
 		except KeyError:
 			pass
+		if len(self.elemtails) > 0:
+			self.elemtails[-1].append(element.tail or '')
 
 		target = self.get_target()
 
@@ -190,6 +196,8 @@ class OMXState(object):
 
 		values = dict([(t.name, t.data) for t in target.data[-1].values])
 		target.data[-1] = target.data[-1].template.factory(**values)
+
+		element.clear()
 
 
 if __name__ == '__main__':
