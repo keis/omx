@@ -77,7 +77,7 @@ class TemplateData(object):
 		for t in self.values:
 			if t.name is None:
 				if t.singleton and t.data is None:
-					raise Exception("Missing argument")
+					raise Exception("Missing argument (arg %d to %s)" % (len(args) + 1, self.template.match))
 				args.append(t.data)
 			else:
 				if t.data is not None or not t.singleton:
