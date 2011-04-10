@@ -11,6 +11,9 @@
 
 from lxml import etree
 
+## TODO
+# Refactor Target singleton checks (method(s) in Target?)
+
 class Target(object):
 	''' Holds the data passed to a factory as 'name'
 
@@ -73,9 +76,12 @@ class TemplateData(object):
 		kwargs = {}
 		for t in self.values:
 			if t.name is None:
+				if t.singleton and t.data is None:
+					raise Exception("Missing argument")
 				args.append(t.data)
 			else:
-				kwargs[t.name] = t.data
+				if t.data is not None or not t.singleton:
+					kwargs[t.name] = t.data
 
 		# Create object
 		return self.template.factory(*args, **kwargs)
@@ -97,7 +103,7 @@ class OMX(object):
 	def load(self, xmldata):
 		''' Maps 'xmldata' into objects as defined by the templates '''
 		state = OMXState(self)
-		root_target = state.add_target(self.root, 'root')
+		root_target = state.add_target(self.root, 'root', ('/' not in self.root))
 
 		for event,element in etree.iterparse(xmldata, events = ('start', 'end')):
 			if event == 'start':
@@ -107,7 +113,7 @@ class OMX(object):
 			else:
 				assert False
 
-		return root_target.data[0]
+		return root_target.data
 
 
 class OMXState(object):
@@ -119,13 +125,14 @@ class OMXState(object):
 		self.context = {'ids' : {}}
 
 
-	def add_target(self, path, name):
+	def add_target(self, path, name, singleton = None):
 		''' Registers elements at 'path' relative the current path to be saved
 			in new Target named 'name'. Returns the new Target instance.
 		'''
 
 		paths = [tuple(self.path + p.strip().split('/')) for p in path.split('|')]
-		singleton = len(paths) == 1 and (path[0] == '@' or path == 'text()')
+		if singleton is None:
+			singleton = len(paths) == 1 and (path[0] == '@' or path == 'text()')
 		target = Target(name, singleton)
 
 		# Currently only supports one target per element
@@ -173,7 +180,7 @@ class OMXState(object):
 		except KeyError:
 			# An early exit branch should be added to push/pop for the case
 			# when a subtree is not mapped to a object
-			raise Exception('SKIP not implemented')
+			raise Exception("SKIP not implemented (element without target '%s'" % element.tag)
 
 		self.path.append(element.tag)
 		self.elemtails.append([])
@@ -182,7 +189,10 @@ class OMXState(object):
 			# Create TemplateData instance to collect data of this element
 			template = self.omx.get_template(self.path)
 			data = TemplateData(template, self)
-			target.data.append(data)
+			if target.singleton:
+				target.data = data
+			else:
+				target.data.append(data)
 			if 'id' in element.attrib:
 				self.context['ids'][element.attrib['id']] = data
 
@@ -229,10 +239,21 @@ class OMXState(object):
 		if target is None:
 			return
 
-		assert isinstance(target.data[-1], TemplateData)
-		self.prune_targets(target.data[-1])
+		if target.singleton:
+			data = target.data
+		else:
+			data = target.data[-1]
 
-		obj = target.data[-1] = target.data[-1].create()
+		assert isinstance(data, TemplateData)
+		self.prune_targets(data)
+
+		obj = data.create()
+
+		if target.singleton:
+			target.data = obj
+		else:
+			target.data[-1] = obj
+
 		if 'id' in element.attrib:
 			self.context['ids'][element.attrib['id']] = obj
 

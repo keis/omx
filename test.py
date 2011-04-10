@@ -76,6 +76,14 @@ class Intermediate(OMXTest):
 		self.assertEqual(result[0], 'root')
 		self.assertEqual(result[1], ['foo', 'bar'])
 
+	def test_intermediate_root(self):
+		itemtt = Template('item', ('@key', 'text()'), {},
+			lambda key,value: (key, ''.join(value)))
+		omx = OMX((itemtt,), 'root/items/item')
+
+		result = omx.load(self.data)
+		self.assertEqual(result, [('foo', 'fooz'), ('bar', 'barz')])
+
 class Multitarget(OMXTest):
 	xmldata = '<root><foo>hello</foo><bar>world</bar><foo>!</foo></root>'
 
