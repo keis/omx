@@ -31,19 +31,22 @@ class Target(object):
 class Template(object):
 	''' Defines how elements matched by 'match' is converted to objects
 
-		targets is a dictionary mapping paths to names
+		ptargets is sequence of paths
+		ktargets is a dictionary mapping paths to names
 		factory is a function or type that will be called with the data
-			defined by targets as keyword arguments
+			defined by ptargets as positional arguments and ktargets as
+			keyword arguments.
 	'''
-	def __init__(self, match, targets, factory):
+	def __init__(self, match, ptargets=None, ktargets=None, factory=lambda: None):
 		self.match = match
-		self.targets = targets
 		self.factory = factory
+		# Store as sequence of key,value pairs to maintain order of ptargets
+		self.targets = (ktargets or {}).items() + [(p,None) for p in (ptargets or [])]
 
 
-def template(name, targets):
+def template(name, ptargets=None, ktargets=None):
 	def decorator(func):
-		return Template(name, targets, func)
+		return Template(name, ptargets, ktargets, func)
 	return decorator
 
 class TemplateData(object):
@@ -59,7 +62,23 @@ class TemplateData(object):
 	def __init__(self, template, state):
 		self.template = template
 		self.values = [state.add_target(path, name) for (path, name)
-			in template.targets.items()]
+			in template.targets]
+
+	def create(self):
+		''' Creates a new object by calling the factory of the Template with
+			the values stored '''
+
+		# Build positonal and keyword -arguments
+		args = []
+		kwargs = {}
+		for t in self.values:
+			if t.name is None:
+				args.append(t.data)
+			else:
+				kwargs[t.name] = t.data
+
+		# Create object
+		return self.template.factory(*args, **kwargs)
 
 
 class OMX(object):
@@ -213,9 +232,7 @@ class OMXState(object):
 		assert isinstance(target.data[-1], TemplateData)
 		self.prune_targets(target.data[-1])
 
-		values = dict([(t.name, t.data) for t in target.data[-1].values])
-		obj = target.data[-1].template.factory(**values)
-		target.data[-1] = obj
+		obj = target.data[-1] = target.data[-1].create()
 		if 'id' in element.attrib:
 			self.context['ids'][element.attrib['id']] = obj
 
@@ -225,7 +242,7 @@ class OMXState(object):
 if __name__ == '__main__':
 	from StringIO import StringIO
 
-	roott = Template('root', {'persons/person/@name' : 'names'},
+	roott = Template('root', (), {'persons/person/@name' : 'names'},
 		lambda names=None: ('root', names))
 	omx = OMX((roott,), 'root')
 	v = omx.load(StringIO('<root><persons><person name="foo"/><person name="bar">bla bla</person></persons></root>'))
