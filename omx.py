@@ -1,5 +1,5 @@
 #!/usr/bin/env python2
-''' OMX - Omx Maps Xml
+''' Omx Maps Xml
 
 	A module for mapping XML into python objects by rules defined by templates
 
@@ -11,8 +11,12 @@
 
 from lxml import etree
 
-## TODO
+## TODO / Wishlist
 # Refactor Target singleton checks (method(s) in Target?)
+# Serialisation reusing the same templates
+# XML schema from templates ( relax ng ? )
+# Aliasing or Template inheritance
+# Easy singleton targets from template decorator / object - use [] syntax? like "/foo/bar[0]"
 
 class Target(object):
 	''' Holds the data passed to a factory as 'name'
@@ -110,8 +114,10 @@ class OMX(object):
 				state.push(element)
 			elif event == 'end':
 				state.pop(element)
-			else:
+				element.clear()
+			else: # pragma: no cover
 				assert False
+
 
 		return root_target.data
 
@@ -175,14 +181,24 @@ class OMXState(object):
 
 
 	def push(self, element):
+		''' Called when the parser descends into the tree, causing a new element
+			to be pushed to the end of the path.
+
+			Initialises a TemplateData instance for the element if needed and fills
+			any attribute targets registered for the element
+
+		'''
+
+		self.path.append(element.tag)
+
 		try:
-			target = self.get_target(self.path + [element.tag])
+			target = self.get_target()
 		except KeyError:
 			# An early exit branch should be added to push/pop for the case
 			# when a subtree is not mapped to a object
 			raise Exception("SKIP not implemented (element without target '%s'" % element.tag)
 
-		self.path.append(element.tag)
+		# Push empty state to text collector
 		self.elemtails.append([])
 
 		if target is not None:
@@ -209,10 +225,21 @@ class OMXState(object):
 
 
 	def pop(self, element):
+		''' Called when the parser ascends the tree, causing the last element
+			of the path to be popped.
+
+			Fills text() and context() targets
+			Replaces target TemplateData with destination object instance.
+		'''
+
 		assert self.path[-1] == element.tag
 
-		# Fill text target
+		# Pop text collector state and add the text tail of element
 		tails = self.elemtails.pop()
+		if len(self.elemtails) > 0:
+			self.elemtails[-1].append(element.tail or '')
+
+		# Fill text target: text of current element + tail of all child elements
 		try:
 			target = self.get_target(self.path + ['text()'])
 			text = [element.text or ''] + tails
@@ -222,8 +249,6 @@ class OMXState(object):
 				target.data.append(text)
 		except KeyError:
 			pass
-		if len(self.elemtails) > 0:
-			self.elemtails[-1].append(element.tail or '')
 
 		# Fill context target
 		try:
@@ -233,12 +258,11 @@ class OMXState(object):
 			pass
 
 		target = self.get_target()
-
 		self.path.pop()
-
 		if target is None:
 			return
 
+		# Create object from TemplateData and clean up
 		if target.singleton:
 			data = target.data
 		else:
@@ -254,13 +278,12 @@ class OMXState(object):
 		else:
 			target.data[-1] = obj
 
+		# Save in ID dictionary if id is set
 		if 'id' in element.attrib:
 			self.context['ids'][element.attrib['id']] = obj
 
-		element.clear()
 
-
-if __name__ == '__main__':
+if __name__ == '__main__': # pragma: no cover
 	from StringIO import StringIO
 
 	roott = Template('root', (), {'persons/person/@name' : 'names'},
