@@ -1,22 +1,26 @@
 #!/usr/bin/env python2
+# vim: noet:ts=4:sw=4:
 ''' Omx Maps Xml
 
 	A module for mapping XML into python objects by rules defined by templates
 
 	This module uses xpath like paths to designate elements in the tree, but
 	supports far from all parts of the specification (thus xpath like). In
-	addition to simple relative paths attributes may be access with @ and the 
-	text of a node with text(), but no other xpath functions is supported.
+	addition to simple relative paths attributes may be access with @-symbol
+	and the text of a node with text(), but no other xpath functions is supported.
 '''
-
-from lxml import etree
 
 ## TODO / Wishlist
 # Refactor Target singleton checks (method(s) in Target?)
 # Serialisation reusing the same templates
 # XML schema from templates ( relax ng ? )
 # Aliasing or Template inheritance
-# Easy singleton targets from template decorator / object - use [] syntax? like "/foo/bar[0]"
+# Easy singleton targets from template decorator / object
+## use [] syntax? like "/foo/bar[0]"
+## or something regexp inspired *, +, {3}
+
+from lxml import etree
+
 
 class Target(object):
 	''' Holds the data passed to a factory as 'name'
@@ -48,13 +52,15 @@ class Template(object):
 		self.match = match
 		self.factory = factory
 		# Store as sequence of key,value pairs to maintain order of ptargets
-		self.targets = (ktargets or {}).items() + [(p,None) for p in (ptargets or [])]
+		self.targets = (ktargets or {}).items()
+		self.targets += [(p, None) for p in (ptargets or [])]
 
 
 def template(name, ptargets=None, ktargets=None):
 	def decorator(func):
 		return Template(name, ptargets, ktargets, func)
 	return decorator
+
 
 class TemplateData(object):
 	''' Collects the data need to create a object as defined by 'template'
@@ -81,7 +87,8 @@ class TemplateData(object):
 		for t in self.values:
 			if t.name is None:
 				if t.singleton and t.data is None:
-					raise Exception("Missing argument (arg %d to %s)" % (len(args) + 1, self.template.match))
+					raise Exception("Missing argument (arg %d to %s)" %
+						(len(args) + 1, self.template.match))
 				args.append(t.data)
 			else:
 				if t.data is not None or not t.singleton:
@@ -98,26 +105,23 @@ class OMX(object):
 		self.templates = dict((t.match, t) for t in templates)
 		self.root = root
 
-
 	def get_template(self, path):
 		''' Get the template used to map path into a object '''
 		return self.templates[path[-1]]
-
 
 	def load(self, xmldata):
 		''' Maps 'xmldata' into objects as defined by the templates '''
 		state = OMXState(self)
 		root_target = state.add_target(self.root, 'root', ('/' not in self.root))
 
-		for event,element in etree.iterparse(xmldata, events = ('start', 'end')):
+		for event, element in etree.iterparse(xmldata, events=('start', 'end')):
 			if event == 'start':
 				state.push(element)
 			elif event == 'end':
 				state.pop(element)
 				element.clear()
-			else: # pragma: no cover
+			else:  # pragma: no cover
 				assert False
-
 
 		return root_target.data
 
@@ -128,10 +132,9 @@ class OMXState(object):
 		self.path = []
 		self.elemtails = []
 		self.targets = {}
-		self.context = {'ids' : {}}
+		self.context = {'ids': {}}
 
-
-	def add_target(self, path, name, singleton = None):
+	def add_target(self, path, name, singleton=None):
 		''' Registers elements at 'path' relative the current path to be saved
 			in new Target named 'name'. Returns the new Target instance.
 		'''
@@ -145,18 +148,17 @@ class OMXState(object):
 		# May change if a proper usecase is found
 		for path in paths:
 			if path in self.targets and self.targets[path] is not None:
-				raise Exception("Path already claimed (%s %s)", (path, name))
+				raise Exception("Path already claimed (%s %s)" % (path, name))
 
 		for path in paths:
 			self.targets[path] = target
 
 			# Add null targets for unclaimed intermediate steps
-			for l in range(len(path),0,-1):
+			for l in range(len(path), 0, -1):
 				if path[:l] not in self.targets:
 					self.targets[path[:l]] = None
 
 		return target
-
 
 	def get_target(self, path=None):
 		''' Get the Target instance registered for 'path' or the current path
@@ -171,14 +173,12 @@ class OMXState(object):
 
 		return self.targets[tuple(path)]
 
-
 	def prune_targets(self, templatedata):
 		''' Removes all targets registered for 'templatedata' '''
 
-		for k,v in self.targets.items():
+		for k, v in self.targets.items():
 			if v in templatedata.values:
 				del self.targets[k]
-
 
 	def push(self, element):
 		''' Called when the parser descends into the tree, causing a new element
@@ -196,7 +196,8 @@ class OMXState(object):
 		except KeyError:
 			# An early exit branch should be added to push/pop for the case
 			# when a subtree is not mapped to a object
-			raise Exception("SKIP not implemented (element without target '%s'" % element.tag)
+			raise Exception("SKIP not implemented (element without target '%s')"
+				% element.tag)
 
 		# Push empty state to text collector
 		self.elemtails.append([])
@@ -213,7 +214,7 @@ class OMXState(object):
 				self.context['ids'][element.attrib['id']] = data
 
 		# Fill attribute targets
-		for k,v in element.attrib.items():
+		for k, v in element.attrib.items():
 			try:
 				target = self.get_target(self.path + ['@%s' % k])
 				if target.singleton:
@@ -222,7 +223,6 @@ class OMXState(object):
 					target.data.append(v)
 			except KeyError:
 				pass
-
 
 	def pop(self, element):
 		''' Called when the parser ascends the tree, causing the last element
@@ -283,11 +283,17 @@ class OMXState(object):
 			self.context['ids'][element.attrib['id']] = obj
 
 
-if __name__ == '__main__': # pragma: no cover
+if __name__ == '__main__':  # pragma: no cover
 	from StringIO import StringIO
+	data = '''<root>
+				<persons>
+					<person name="foo"/>
+					<person name="bar">bla bla</person>
+				</persons>
+			</root>'''
 
-	roott = Template('root', (), {'persons/person/@name' : 'names'},
+	roott = Template('root', (), {'persons/person/@name': 'names'},
 		lambda names=None: ('root', names))
 	omx = OMX((roott,), 'root')
-	v = omx.load(StringIO('<root><persons><person name="foo"/><person name="bar">bla bla</person></persons></root>'))
+	v = omx.load(StringIO(data))
 	print v
