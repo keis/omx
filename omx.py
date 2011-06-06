@@ -105,6 +105,21 @@ class TemplateData(object):
 		# Create object
 		return self.template.factory(*args, **kwargs)
 
+	def dump(self, obj):
+		(args, kwargs) = self.template.serialiser(obj)
+		args = list(args)
+		args.reverse()
+		for t in self.values:
+			if t.name is None:
+				if t.singleton:
+					t.data = args.pop()
+				else:
+					t.data = list(args.pop())
+			else:
+				if t.singleton:
+					t.data = kwargs[t.name]
+				else:
+					t.data = list(kwargs[t.name])
 
 class OMX(object):
 	''' Defines how a XML document is converted into objects '''
@@ -132,6 +147,109 @@ class OMX(object):
 				assert False
 
 		return root_target.data
+
+	def dump(self, obj):
+		''' Maps 'obj' into a xml as defined by the templates '''
+		state = DumpState(self)
+		state.add_target(self.root, 'root', ('/' not in self.root))
+
+		stack = []
+		for event, path, data in state.dump(obj):
+			if event == 'start':
+				e = etree.Element(data.template.match)
+				if stack:
+					stack[-1].append(e)
+				else:
+					tree = etree.ElementTree(e)
+				stack.append(e)
+			elif event == 'end':
+				e = stack.pop()
+			else:
+				assert False
+
+		return tree
+
+
+class DumpState(object):
+	def __init__(self, omx):
+		self.omx = omx
+		self.path = []
+		self.targets = {}
+
+	def add_target(self, path, name, singleton=None):
+		paths = [tuple(self.path + p.strip().split('/')) for p in path.split('|')]
+		if singleton is None:
+			singleton = len(paths) == 1 and (path[0] == '@' or path == 'text()')
+		target = Target(name, singleton)
+
+		# Currently only supports one target per element
+		# May change if a proper usecase is found
+		for path in paths:
+			if path in self.targets and self.targets[path] is not None:
+				raise Exception("Path already claimed (%s %s)" % (path, name))
+
+		for path in paths:
+			self.targets[path] = target
+
+			# Add null targets for unclaimed intermediate steps
+			for l in range(len(path), 0, -1):
+				if path[:l] not in self.targets:
+					self.targets[path[:l]] = None
+
+		return target
+
+	def next_target(self, path):
+		tpaths = self.targets.keys()
+		tpaths.sort()
+		if path is None:
+			i = -1
+		else:
+			i = tpaths.index(tuple(path))
+		if len(tpaths) > i+1 and (path is None or tpaths[i+1][-2] == path[-1]):
+			return tpaths[i+1], self.targets[tpaths[i+1]]
+		else:
+			return tpaths[i], self.targets[tpaths[i]]
+
+	def dump(self, obj):
+		path, target = self.targets.items()[0]
+		if target.singleton:
+			target.data = obj
+		else:
+			target.data.append(obj)
+
+		self.path = None
+		while len(self.targets) > 0:
+			path, target = self.next_target(self.path)
+			self.path = list(path)
+
+			if target.singleton:
+				if isinstance(target.data, TemplateData):
+					yield 'end', path, None
+					del self.targets[path]
+					self.path.pop()
+					continue
+
+				template = self.omx.get_template(path)
+				data = TemplateData(template, self)
+				data.dump(target.data)
+				target.data = data
+				yield 'start', path, data
+			else:
+				for i, d in enumerate(target.data):
+					if not isinstance(d, TemplateData):
+						if i > 0:
+							yield 'end', path, None
+
+						template = self.omx.get_template(path)
+						data = TemplateData(template, self)
+						data.dump(d)
+						target.data[i] = data
+						yield 'start', self.path, data
+						break
+				else:
+					yield 'end', path, None
+					del self.targets[path]
+					self.path.pop()
 
 
 class OMXState(object):
@@ -290,6 +408,27 @@ class OMXState(object):
 		if 'id' in element.attrib:
 			self.context['ids'][element.attrib['id']] = obj
 
+if __name__ == '__main__':
+	class Stub(object): pass
+	data = Stub()
+	data.foo = ['aaa']
+	data.bar = ['bbb', 'ccc']
+	roott = Template('root', ('foo','bar'),
+		serialiser=lambda obj: ((obj.foo,obj.bar), {}))
+	foot = Template('foo',
+		serialiser=lambda obj: ((), {}))
+	bart = Template('bar',
+		serialiser=lambda obj: ((), {}))
+
+	omx = OMX((roott,foot,bart), 'root')
+
+	result = omx.dump(data)
+	from StringIO import StringIO
+	out = StringIO()
+	result.write(out)
+	print out.getvalue()
+	import sys
+	sys.exit()
 
 if __name__ == '__main__':  # pragma: no cover
 	from StringIO import StringIO
@@ -301,7 +440,11 @@ if __name__ == '__main__':  # pragma: no cover
 			</root>'''
 
 	roott = Template('root', (), {'persons/person/@name': 'names'},
-		lambda names=None: ('root', names))
+		lambda names=None: ('root', names),
+		lambda obj: ((), {'names': obj[1]}))
 	omx = OMX((roott,), 'root')
 	v = omx.load(StringIO(data))
 	print v
+
+	s = omx.dump(v)
+	print s
