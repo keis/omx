@@ -48,12 +48,17 @@ class Template(object):
 			defined by ptargets as positional arguments and ktargets as
 			keyword arguments.
 	'''
-	def __init__(self, match, ptargets=None, ktargets=None, factory=lambda: None):
+	def __init__(self, match, ptargets=None, ktargets=None, factory=lambda: None,
+			serialiser=lambda obj: ((),{})):
 		self.match = match
 		self.factory = factory
+		self.serialiser = serialiser
 		# Store as sequence of key,value pairs to maintain order of ptargets
 		self.targets = (ktargets or {}).items()
 		self.targets += [(p, None) for p in (ptargets or [])]
+
+	def __repr__(self):
+		return '<Template matching "%s">' % (self.match,)
 
 
 def template(name, ptargets=None, ktargets=None):
@@ -74,8 +79,11 @@ class TemplateData(object):
 
 	def __init__(self, template, state):
 		self.template = template
-		self.values = [state.add_target(path, name) for (path, name)
-			in template.targets]
+		add = state.add_target
+		self.values = [add(path, name) for (path, name) in template.targets]
+
+	def __repr__(self):
+		return '<TemplateData of %r>' % self.template
 
 	def create(self):
 		''' Creates a new object by calling the factory of the Template with
