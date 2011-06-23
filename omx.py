@@ -154,16 +154,15 @@ class OMX(object):
 		state.add_target(self.root, 'root', ('/' not in self.root))
 
 		stack = []
-		for event, path, data in state.dump(obj):
+		for event, element in state.dump(obj):
 			if event == 'start':
-				e = etree.Element(data.template.match)
 				if stack:
-					stack[-1].append(e)
+					stack[-1].append(element)
 				else:
-					tree = etree.ElementTree(e)
-				stack.append(e)
+					tree = etree.ElementTree(element)
+				stack.append(element)
 			elif event == 'end':
-				e = stack.pop()
+				element = stack.pop()
 			else:
 				assert False
 
@@ -224,7 +223,7 @@ class DumpState(object):
 
 			if target.singleton:
 				if isinstance(target.data, TemplateData):
-					yield 'end', path, None
+					yield 'end', None
 					del self.targets[path]
 					self.path.pop()
 					continue
@@ -233,21 +232,23 @@ class DumpState(object):
 				data = TemplateData(template, self)
 				data.dump(target.data)
 				target.data = data
-				yield 'start', path, data
+				element = etree.Element(data.template.match)
+				yield 'start', element
 			else:
 				for i, d in enumerate(target.data):
 					if not isinstance(d, TemplateData):
 						if i > 0:
-							yield 'end', path, None
+							yield 'end', None
 
 						template = self.omx.get_template(path)
 						data = TemplateData(template, self)
 						data.dump(d)
 						target.data[i] = data
-						yield 'start', self.path, data
+						element = etree.Element(data.template.match)
+						yield 'start', element
 						break
 				else:
-					yield 'end', path, None
+					yield 'end', None
 					del self.targets[path]
 					self.path.pop()
 
