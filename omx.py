@@ -169,6 +169,9 @@ class OMX(object):
 		return tree
 
 
+IntermediateFirst = object()
+IntermediateRepeat = object()
+
 class DumpState(object):
 	def __init__(self, omx):
 		self.omx = omx
@@ -198,16 +201,29 @@ class DumpState(object):
 		return target
 
 	def next_target(self, path):
-		tpaths = self.targets.keys()
+		tpaths = [p for p in self.targets.keys() if p[-1][0] != '@']
 		tpaths.sort()
 		if path is None:
 			i = -1
 		else:
 			i = tpaths.index(tuple(path))
 		if len(tpaths) > i+1 and (path is None or tpaths[i+1][-2] == path[-1]):
-			return tpaths[i+1], self.targets[tpaths[i+1]]
+			return tpaths[i+1], self.targets[tpaths[i+1]] or IntermediateFirst
 		else:
-			return tpaths[i], self.targets[tpaths[i]]
+			return tpaths[i], self.targets[tpaths[i]] or IntermediateRepeat
+
+	def get_attributes(self, path):
+		pl = len(path)
+		for ap, at in self.targets.items():
+			if len(ap) == pl + 1 and ap[-1][0] == '@':
+				if at.singleton:
+					v = at.data
+					del self.targets[ap]
+				else:
+					v = at.data.pop()
+					if len(at.data) == 0:
+						del self.targets[ap]
+				yield ap[-1][1:], v
 
 	def dump(self, obj):
 		path, target = self.targets.items()[0]
@@ -221,7 +237,25 @@ class DumpState(object):
 			path, target = self.next_target(self.path)
 			self.path = list(path)
 
-			if target.singleton:
+			if target is IntermediateFirst:
+				element = etree.Element(path[-1])
+				attributes = dict(self.get_attributes(path))
+				element.attrib.update(attributes)
+				yield 'start', element
+
+			elif target is IntermediateRepeat:
+				yield 'end', None
+
+				element = etree.Element(path[-1])
+				attributes = dict(self.get_attributes(path))
+				if attributes:
+					element.attrib.update(attributes)
+					yield 'start', element
+				else:
+					del self.targets[path]
+					self.path.pop()
+
+			elif target.singleton:
 				if isinstance(target.data, TemplateData):
 					yield 'end', None
 					del self.targets[path]
@@ -233,6 +267,8 @@ class DumpState(object):
 				data.dump(target.data)
 				target.data = data
 				element = etree.Element(data.template.match)
+				attributes = dict(self.get_attributes(path))
+				element.attrib.update(attributes)
 				yield 'start', element
 			else:
 				for i, d in enumerate(target.data):
@@ -245,6 +281,8 @@ class DumpState(object):
 						data.dump(d)
 						target.data[i] = data
 						element = etree.Element(data.template.match)
+						attributes = dict(self.get_attributes(path))
+						element.attrib.update(attributes)
 						yield 'start', element
 						break
 				else:
@@ -409,28 +447,6 @@ class OMXState(object):
 		if 'id' in element.attrib:
 			self.context['ids'][element.attrib['id']] = obj
 
-if __name__ == '__main__':
-	class Stub(object): pass
-	data = Stub()
-	data.foo = ['aaa']
-	data.bar = ['bbb', 'ccc']
-	roott = Template('root', ('foo','bar'),
-		serialiser=lambda obj: ((obj.foo,obj.bar), {}))
-	foot = Template('foo',
-		serialiser=lambda obj: ((), {}))
-	bart = Template('bar',
-		serialiser=lambda obj: ((), {}))
-
-	omx = OMX((roott,foot,bart), 'root')
-
-	result = omx.dump(data)
-	from StringIO import StringIO
-	out = StringIO()
-	result.write(out)
-	print out.getvalue()
-	import sys
-	sys.exit()
-
 if __name__ == '__main__':  # pragma: no cover
 	from StringIO import StringIO
 	data = '''<root>
@@ -448,4 +464,6 @@ if __name__ == '__main__':  # pragma: no cover
 	print v
 
 	s = omx.dump(v)
-	print s
+	out = StringIO()
+	s.write(out)
+	print out.getvalue()

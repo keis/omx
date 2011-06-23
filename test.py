@@ -9,6 +9,18 @@ class OMXTest(unittest.TestCase):
 	def setUp(self):
 		self.data = StringIO(self.xmldata)
 
+class Dump(unittest.TestCase):
+	def test_attributes(self):
+		data = ('buba',)
+		foot = Template('foo', ('@id',),
+			serialiser=lambda obj: ((obj[0],), {}))
+
+		omx = OMX((foot,), 'foo')
+
+		result = omx.dump(data)
+
+		print result
+
 class Basic(OMXTest):
 	xmldata = '<foo id="buba">Text<bar>one</bar>TEXT<bar>two</bar>text</foo>'
 
@@ -54,7 +66,7 @@ class Basic(OMXTest):
 		self.assertEqual(result, {'uid' : 'buba', 'bar' : [None,None]})
 
 class Intermediate(OMXTest):
-	xmldata = '<root><items><item key="foo">fooz</item><item key="bar">barz</item></items></root>'
+	xmldata = '<root><items><item key="foo" prop="aaa">fooz</item><item key="bar" prop="bbb">barz</item></items></root>'
 
 	def test_intermediate(self):
 		roott = Template('root', ('items/item',), {},
@@ -75,6 +87,16 @@ class Intermediate(OMXTest):
 		result = omx.load(self.data)
 		self.assertEqual(result[0], 'root')
 		self.assertEqual(result[1], ['foo', 'bar'])
+
+	def test_intermediate_dual_attr(self):
+		roott = Template('root', ('items/item/@key','items/item/@prop'), {},
+			lambda keys, props: ('root', keys, props))
+		omx = OMX((roott,) , 'root')
+
+		result = omx.load(self.data)
+		self.assertEqual(result[0], 'root')
+		self.assertEqual(result[1], ['foo', 'bar'])
+		self.assertEqual(result[2], ['aaa', 'bbb'])
 
 	def test_intermediate_root(self):
 		itemtt = Template('item', ('@key', 'text()'), {},
