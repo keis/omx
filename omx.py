@@ -36,7 +36,55 @@ class Target(object):
 	def __init__(self, name, singleton):
 		self.name = name
 		self.singleton = singleton
-		self.data = None if singleton else []
+		self._data = None if singleton else []
+
+	@property
+	def empty(self):
+		if self.singleton:
+			return self._data is None
+		return len(self._data) == 0
+
+	@property
+	def value(self):
+		if self.singleton:
+			if self._data is None:
+				raise IndexError("No value set")
+			return self._data
+		return self._data[-1]
+
+	@value.setter
+	def value(self, val):
+		if self.singleton:
+			self._data = val
+		else:
+			self._data[-1] = val
+
+	def add(self, value):
+		if self.singleton:
+			if self._data is not None:
+				raise Exception("Value already set for singleton target")
+			self._data = value
+		else:
+			self._data.append(value)
+
+	def pop(self):
+		if self.singleton:
+			if self._data is None:
+				raise IndexError("No value set")
+			value = self._data
+			self._data = None
+		else:
+			value = self._data.pop()
+
+		return value
+
+	def get(self):
+		return self._data
+
+	def set(self, d):
+		if not self.singleton:
+			d = list(d)
+		self._data = d
 
 
 class Template(object):
@@ -94,13 +142,13 @@ class TemplateData(object):
 		kwargs = {}
 		for t in self.values:
 			if t.name is None:
-				if t.singleton and t.data is None:
+				if t.singleton and t.empty:
 					raise Exception("Missing argument (arg %d to %s)" %
 						(len(args) + 1, self.template.match))
-				args.append(t.data)
+				args.append(t.get())
 			else:
-				if t.data is not None or not t.singleton:
-					kwargs[t.name] = t.data
+				if not t.empty or not t.singleton:
+					kwargs[t.name] = t.get()
 
 		# Create object
 		return self.template.factory(*args, **kwargs)
@@ -111,15 +159,9 @@ class TemplateData(object):
 		args.reverse()
 		for t in self.values:
 			if t.name is None:
-				if t.singleton:
-					t.data = args.pop()
-				else:
-					t.data = list(args.pop())
+				t.set(args.pop())
 			else:
-				if t.singleton:
-					t.data = kwargs[t.name]
-				else:
-					t.data = list(kwargs[t.name])
+				t.set(kwargs[t.name])
 
 class OMX(object):
 	''' Defines how a XML document is converted into objects '''
@@ -146,7 +188,7 @@ class OMX(object):
 			else:  # pragma: no cover
 				assert False
 
-		return root_target.data
+		return root_target.get()
 
 	def dump(self, obj):
 		''' Maps 'obj' into a xml as defined by the templates '''
@@ -181,7 +223,7 @@ class DumpState(object):
 	def add_target(self, path, name, singleton=None):
 		paths = [tuple(self.path + p.strip().split('/')) for p in path.split('|')]
 		if singleton is None:
-			singleton = len(paths) == 1 and (path[0] == '@' or path == 'text()')
+			singleton = len(paths) == 1 and (path[0] == '@' or path.endswith('()'))
 		target = Target(name, singleton)
 
 		# Currently only supports one target per element
@@ -216,21 +258,14 @@ class DumpState(object):
 		pl = len(path)
 		for ap, at in self.targets.items():
 			if len(ap) == pl + 1 and ap[-1][0] == '@':
-				if at.singleton:
-					v = at.data
+				v = at.pop()
+				if at.empty:
 					del self.targets[ap]
-				else:
-					v = at.data.pop()
-					if len(at.data) == 0:
-						del self.targets[ap]
 				yield ap[-1][1:], v
 
 	def dump(self, obj):
 		path, target = self.targets.items()[0]
-		if target.singleton:
-			target.data = obj
-		else:
-			target.data.append(obj)
+		target.add(obj)
 
 		self.path = None
 		while len(self.targets) > 0:
@@ -256,7 +291,7 @@ class DumpState(object):
 					self.path.pop()
 
 			elif target.singleton:
-				if isinstance(target.data, TemplateData):
+				if isinstance(target._data, TemplateData):
 					yield 'end', None
 					del self.targets[path]
 					self.path.pop()
@@ -264,14 +299,15 @@ class DumpState(object):
 
 				template = self.omx.get_template(path)
 				data = TemplateData(template, self)
-				data.dump(target.data)
-				target.data = data
+				data.dump(target._data)
+				target._data = data
 				element = etree.Element(data.template.match)
 				attributes = dict(self.get_attributes(path))
 				element.attrib.update(attributes)
 				yield 'start', element
 			else:
-				for i, d in enumerate(target.data):
+				# FIXME: This is bad, should only pop one at a time
+				for i, d in enumerate(target._data):
 					if not isinstance(d, TemplateData):
 						if i > 0:
 							yield 'end', None
@@ -279,7 +315,7 @@ class DumpState(object):
 						template = self.omx.get_template(path)
 						data = TemplateData(template, self)
 						data.dump(d)
-						target.data[i] = data
+						target._data[i] = data
 						element = etree.Element(data.template.match)
 						attributes = dict(self.get_attributes(path))
 						element.attrib.update(attributes)
@@ -306,7 +342,7 @@ class OMXState(object):
 
 		paths = [tuple(self.path + p.strip().split('/')) for p in path.split('|')]
 		if singleton is None:
-			singleton = len(paths) == 1 and (path[0] == '@' or path == 'text()')
+			singleton = len(paths) == 1 and (path[0] == '@' or path.endswith('()'))
 		target = Target(name, singleton)
 
 		# Currently only supports one target per element
@@ -371,10 +407,7 @@ class OMXState(object):
 			# Create TemplateData instance to collect data of this element
 			template = self.omx.get_template(self.path)
 			data = TemplateData(template, self)
-			if target.singleton:
-				target.data = data
-			else:
-				target.data.append(data)
+			target.add(data)
 			if 'id' in element.attrib:
 				self.context['ids'][element.attrib['id']] = data
 
@@ -382,10 +415,7 @@ class OMXState(object):
 		for k, v in element.attrib.items():
 			try:
 				target = self.get_target(self.path + ['@%s' % k])
-				if target.singleton:
-					target.data = v
-				else:
-					target.data.append(v)
+				target.add(v)
 			except KeyError:
 				pass
 
@@ -408,17 +438,14 @@ class OMXState(object):
 		try:
 			target = self.get_target(self.path + ['text()'])
 			text = [element.text or ''] + tails
-			if target.singleton:
-				target.data = text
-			else:
-				target.data.append(text)
+			target.add(text)
 		except KeyError:
 			pass
 
 		# Fill context target
 		try:
 			target = self.get_target(self.path + ['context()'])
-			target.data = self.context
+			target.add(self.context)
 		except KeyError:
 			pass
 
@@ -428,20 +455,14 @@ class OMXState(object):
 			return
 
 		# Create object from TemplateData and clean up
-		if target.singleton:
-			data = target.data
-		else:
-			data = target.data[-1]
+		data = target.value
 
 		assert isinstance(data, TemplateData)
 		self.prune_targets(data)
 
 		obj = data.create()
 
-		if target.singleton:
-			target.data = obj
-		else:
-			target.data[-1] = obj
+		target.value = obj
 
 		# Save in ID dictionary if id is set
 		if 'id' in element.attrib:
