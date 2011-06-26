@@ -27,11 +27,13 @@ class Dump(unittest.TestCase):
 	def test_deep(self):
 		expected = '<rec><rec><rec><rec><rec><rec/></rec></rec></rec></rec></rec>'
 		data = 5
-		def rectf(obj):
+
+		rect = Template('rec', ('rec',))
+		@rect.serialiser
+		def rect(obj):
 			if obj > 0:
 				return ([obj - 1],), {}
 			return ([],), {}
-		rect = Template('rec', ('rec',), serialiser=rectf)
 
 		omx = OMX((rect,), 'rec')
 

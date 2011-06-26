@@ -96,17 +96,26 @@ class Template(object):
 			defined by ptargets as positional arguments and ktargets as
 			keyword arguments.
 	'''
-	def __init__(self, match, ptargets=None, ktargets=None, factory=lambda: None,
-			serialiser=lambda obj: ((),{})):
+	def __init__(self, match, ptargets=None, ktargets=None,
+			factory=lambda: None,
+			serialiser=lambda obj: ((), {})):
 		self.match = match
-		self.factory = factory
-		self.serialiser = serialiser
+		self._factory = factory
+		self._serialiser = serialiser
 		# Store as sequence of key,value pairs to maintain order of ptargets
 		self.targets = (ktargets or {}).items()
 		self.targets += [(p, None) for p in (ptargets or [])]
 
 	def __repr__(self):
 		return '<Template matching "%s">' % (self.match,)
+
+	def factory(self, fun):
+		self._factory = fun
+		return self
+
+	def serialiser(self, fun):
+		self._serialiser = fun
+		return self
 
 
 def template(name, ptargets=None, ktargets=None):
@@ -151,10 +160,10 @@ class TemplateData(object):
 					kwargs[t.name] = t.get()
 
 		# Create object
-		return self.template.factory(*args, **kwargs)
+		return self.template._factory(*args, **kwargs)
 
 	def dump(self, obj):
-		(args, kwargs) = self.template.serialiser(obj)
+		(args, kwargs) = self.template._serialiser(obj)
 		args = list(args)
 		args.reverse()
 		for t in self.values:
@@ -162,6 +171,7 @@ class TemplateData(object):
 				t.set(args.pop())
 			else:
 				t.set(kwargs[t.name])
+
 
 class OMX(object):
 	''' Defines how a XML document is converted into objects '''
@@ -214,6 +224,7 @@ class OMX(object):
 IntermediateFirst = object()
 IntermediateRepeat = object()
 
+
 class DumpState(object):
 	def __init__(self, omx):
 		self.omx = omx
@@ -249,8 +260,8 @@ class DumpState(object):
 			i = -1
 		else:
 			i = tpaths.index(tuple(path))
-		if len(tpaths) > i+1 and (path is None or tpaths[i+1][-2] == path[-1]):
-			return tpaths[i+1], self.targets[tpaths[i+1]] or IntermediateFirst
+		if len(tpaths) > i + 1 and (path is None or tpaths[i + 1][-2] == path[-1]):
+			return tpaths[i + 1], self.targets[tpaths[i + 1]] or IntermediateFirst
 		else:
 			return tpaths[i], self.targets[tpaths[i]] or IntermediateRepeat
 
