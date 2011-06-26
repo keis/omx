@@ -11,6 +11,7 @@ class OMXTest(unittest.TestCase):
 
 class Dump(unittest.TestCase):
 	def test_attributes(self):
+		expected = '<foo id="buba"/>'
 		data = ('buba',)
 		foot = Template('foo', ('@id',),
 			serialiser=lambda obj: ((obj[0],), {}))
@@ -19,7 +20,42 @@ class Dump(unittest.TestCase):
 
 		result = omx.dump(data)
 
-		print result
+		out = StringIO()
+		result.write(out)
+		self.assertEqual(out.getvalue(), expected)
+
+	def test_deep(self):
+		expected = '<rec><rec><rec><rec><rec><rec/></rec></rec></rec></rec></rec>'
+		data = 5
+		def rectf(obj):
+			if obj > 0:
+				return ([obj - 1],), {}
+			return ([],), {}
+		rect = Template('rec', ('rec',), serialiser=rectf)
+
+		omx = OMX((rect,), 'rec')
+
+		result = omx.dump(data)
+
+		out = StringIO()
+		result.write(out)
+		self.assertEqual(out.getvalue(), expected)
+
+	def test_intermediate(self):
+		expected = '<root><persons><person name="bar"/><person name="foo"/></persons></root>'
+		data = ('root', ['foo', 'bar'])
+
+		roott = Template('root', (), {'persons/person/@name': 'names'},
+			lambda names=None: ('root', names),
+			lambda obj: ((), {'names': obj[1]}))
+
+		omx = OMX((roott,), 'root')
+
+		result = omx.dump(data)
+
+		out = StringIO()
+		result.write(out)
+		self.assertEqual(out.getvalue(), expected)
 
 class Basic(OMXTest):
 	xmldata = '<foo id="buba">Text<bar>one</bar>TEXT<bar>two</bar>text</foo>'

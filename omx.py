@@ -290,41 +290,24 @@ class DumpState(object):
 					del self.targets[path]
 					self.path.pop()
 
-			elif target.singleton:
-				if isinstance(target._data, TemplateData):
-					yield 'end', None
+			else:
+				if target.empty:
 					del self.targets[path]
 					self.path.pop()
 					continue
-
-				template = self.omx.get_template(path)
-				data = TemplateData(template, self)
-				data.dump(target._data)
-				target._data = data
-				element = etree.Element(data.template.match)
-				attributes = dict(self.get_attributes(path))
-				element.attrib.update(attributes)
-				yield 'start', element
-			else:
-				# FIXME: This is bad, should only pop one at a time
-				for i, d in enumerate(target._data):
-					if not isinstance(d, TemplateData):
-						if i > 0:
-							yield 'end', None
-
-						template = self.omx.get_template(path)
-						data = TemplateData(template, self)
-						data.dump(d)
-						target._data[i] = data
-						element = etree.Element(data.template.match)
-						attributes = dict(self.get_attributes(path))
-						element.attrib.update(attributes)
-						yield 'start', element
-						break
-				else:
+				d = target.value
+				if isinstance(d, TemplateData):
 					yield 'end', None
-					del self.targets[path]
-					self.path.pop()
+					target.pop()
+				else:
+					template = self.omx.get_template(path)
+					data = TemplateData(template, self)
+					data.dump(d)
+					target.value = data
+					element = etree.Element(data.template.match)
+					attributes = dict(self.get_attributes(path))
+					element.attrib.update(attributes)
+					yield 'start', element
 
 
 class OMXState(object):
