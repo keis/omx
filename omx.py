@@ -284,10 +284,15 @@ class OMXState(object):
 		else:
 			return tpaths[i], self.targets[tpaths[i]] or IntermediateRepeat
 
-	def get_attributes(self, path):
+	def children(self, path):
 		pl = len(path)
 		for ap, at in self.targets.items():
-			if len(ap) == pl + 1 and ap[-1][0] == '@':
+			if len(ap) == pl + 1:
+				yield ap, at
+
+	def get_attributes(self, path):
+		for ap, at in self.children(path):
+			if ap[-1][0] == '@':
 				v = at.pop()
 				if at.empty:
 					del self.targets[ap]
