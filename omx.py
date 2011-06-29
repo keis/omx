@@ -186,7 +186,7 @@ class OMX(object):
 
 	def load(self, xmldata):
 		''' Maps 'xmldata' into objects as defined by the templates '''
-		state = OMXState(self)
+		state = LoadState(self)
 		root_target = state.add_target(self.root, 'root', ('/' not in self.root))
 
 		for event, element in etree.iterparse(xmldata, events=('start', 'end')):
@@ -220,18 +220,17 @@ class OMX(object):
 
 		return tree
 
-
-IntermediateFirst = object()
-IntermediateRepeat = object()
-
-
-class DumpState(object):
+class OMXState(object):
 	def __init__(self, omx):
 		self.omx = omx
 		self.path = []
 		self.targets = {}
 
 	def add_target(self, path, name, singleton=None):
+		''' Registers elements at 'path' relative the current path to be saved
+			in new Target named 'name'. Returns the new Target instance.
+		'''
+
 		paths = [tuple(self.path + p.strip().split('/')) for p in path.split('|')]
 		if singleton is None:
 			singleton = len(paths) == 1 and (path[0] == '@' or path.endswith('()'))
@@ -253,6 +252,26 @@ class DumpState(object):
 
 		return target
 
+	def get_target(self, path=None):
+		''' Get the Target instance registered for 'path' or the current path
+			if None. Raises KeyError if no Target is registered for the path.
+		'''
+
+		if path is None:
+			path = self.path
+
+		if isinstance(path, str):
+			path = path.split('/')
+
+		return self.targets[tuple(path)]
+
+	def prune_targets(self, templatedata):
+		''' Removes all targets registered for 'templatedata' '''
+
+		for k, v in self.targets.items():
+			if v in templatedata.values:
+				del self.targets[k]
+
 	def next_target(self, path):
 		tpaths = [p for p in self.targets.keys() if p[-1][0] != '@']
 		tpaths.sort()
@@ -273,6 +292,15 @@ class DumpState(object):
 				if at.empty:
 					del self.targets[ap]
 				yield ap[-1][1:], v
+
+
+IntermediateFirst = object()
+IntermediateRepeat = object()
+
+
+class DumpState(OMXState):
+	def __init__(self, omx):
+		OMXState.__init__(self, omx)
 
 	def dump(self, obj):
 		path, target = self.targets.items()[0]
@@ -321,59 +349,11 @@ class DumpState(object):
 					yield 'start', element
 
 
-class OMXState(object):
+class LoadState(OMXState):
 	def __init__(self, omx):
-		self.omx = omx
-		self.path = []
+		OMXState.__init__(self, omx)
 		self.elemtails = []
-		self.targets = {}
 		self.context = {'ids': {}}
-
-	def add_target(self, path, name, singleton=None):
-		''' Registers elements at 'path' relative the current path to be saved
-			in new Target named 'name'. Returns the new Target instance.
-		'''
-
-		paths = [tuple(self.path + p.strip().split('/')) for p in path.split('|')]
-		if singleton is None:
-			singleton = len(paths) == 1 and (path[0] == '@' or path.endswith('()'))
-		target = Target(name, singleton)
-
-		# Currently only supports one target per element
-		# May change if a proper usecase is found
-		for path in paths:
-			if path in self.targets and self.targets[path] is not None:
-				raise Exception("Path already claimed (%s %s)" % (path, name))
-
-		for path in paths:
-			self.targets[path] = target
-
-			# Add null targets for unclaimed intermediate steps
-			for l in range(len(path), 0, -1):
-				if path[:l] not in self.targets:
-					self.targets[path[:l]] = None
-
-		return target
-
-	def get_target(self, path=None):
-		''' Get the Target instance registered for 'path' or the current path
-			if None. Raises KeyError if no Target is registered for the path.
-		'''
-
-		if path is None:
-			path = self.path
-
-		if isinstance(path, str):
-			path = path.split('/')
-
-		return self.targets[tuple(path)]
-
-	def prune_targets(self, templatedata):
-		''' Removes all targets registered for 'templatedata' '''
-
-		for k, v in self.targets.items():
-			if v in templatedata.values:
-				del self.targets[k]
 
 	def push(self, element):
 		''' Called when the parser descends into the tree, causing a new element
