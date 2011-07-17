@@ -231,9 +231,16 @@ class OMXState(object):
 			in new Target named 'name'. Returns the new Target instance.
 		'''
 
-		paths = [tuple(self.path + p.strip().split('/')) for p in path.split('|')]
+		# combine path(s) with current path and detect if the path
+		# should be marked as a singleton target
+		paths = [p.strip().split('/') for p in path.split('|')]
+		indirect = any(len(p) > 1 for p in paths)
 		if singleton is None:
-			singleton = len(paths) == 1 and (path[0] == '@' or path.endswith('()'))
+			singleton = not indirect and \
+				all(p[-1][0] == '@' or p[-1].endswith('()') for p in paths)
+		paths = [tuple(self.path + p) for p in paths]
+
+		# Create handle
 		target = Target(name, singleton)
 
 		# Currently only supports one target per element

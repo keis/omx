@@ -4,10 +4,24 @@ import unittest
 from StringIO import StringIO
 
 from omx import OMX, Template, template
+from omx import OMXState, TemplateData
 
 class OMXTest(unittest.TestCase):
 	def setUp(self):
 		self.data = StringIO(self.xmldata)
+
+class Singleton(unittest.TestCase):
+	def test_auto(self):
+		foot = Template('foo',
+			('@bar', 'text()', 'baz/text()', 'baz/@baz'))
+		omx = OMX((foot,), 'foo')
+		state = OMXState(omx)
+		data = TemplateData(foot, state)
+
+		self.assertTrue(data.values[0].singleton)
+		self.assertTrue(data.values[1].singleton)
+		self.assertFalse(data.values[2].singleton)
+		self.assertFalse(data.values[3].singleton)
 
 class Dump(unittest.TestCase):
 	def test_attributes(self):
