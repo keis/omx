@@ -2,8 +2,8 @@
 
 import unittest
 
-from omx import OMX, Template
-from omx import OMXState, TemplateData
+from .. import OMX
+from ..core import OMXState, Template, TemplateData
 
 
 class Singleton(unittest.TestCase):

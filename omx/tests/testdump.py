@@ -3,7 +3,7 @@
 import unittest
 from StringIO import StringIO
 
-from omx import OMX, Template
+from .. import OMX, Template
 
 
 class Dump(unittest.TestCase):
