@@ -278,8 +278,7 @@ class OMXState(object):
 
 		if path is None:
 			path = self.path
-
-		if isinstance(path, str):
+		elif isinstance(path, str):
 			path = path.strip(' /').split('/')
 
 		return self.__targets[tuple(path)]
@@ -287,8 +286,7 @@ class OMXState(object):
 	def remove_target(self, path=None):
 		if path is None:
 			path = self.path
-
-		if isinstance(path, str):
+		elif isinstance(path, str):
 			path = path.strip(' /').split('/')
 
 		del self.__targets[tuple(path)]
@@ -303,8 +301,7 @@ class OMXState(object):
 	def next_target(self, path=None):
 		if path is None:
 			path = self.path
-
-		if isinstance(path, str):
+		elif isinstance(path, str):
 			path = path.strip(' /').split('/')
 
 		tpaths = [p for p in self.__targets.keys() if not p[-1][0].startswith('@')]
@@ -322,8 +319,10 @@ class OMXState(object):
 			target = self.__targets[tpaths[i]]
 			return tpaths[i], target
 
-	def children(self, path):
-		if isinstance(path, str):
+	def children(self, path=None):
+		if path is None:
+			path = self.path
+		elif isinstance(path, str):
 			path = path.strip(' /').split('/')
 
 		pl = len(path)
@@ -331,7 +330,7 @@ class OMXState(object):
 			if len(ap) == pl + 1 and ap[-2] == path[-1]:
 				yield ap, at
 
-	def get_attributes(self, path):
+	def get_attributes(self, path=None):
 		for ap, at in self.children(path):
 			if ap[-1][0] == '@':
 				v = at.pop()
