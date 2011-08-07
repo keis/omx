@@ -328,7 +328,7 @@ class OMXState(object):
 
 		pl = len(path)
 		for ap, at in self.__targets.items():
-			if len(ap) == pl + 1:
+			if len(ap) == pl + 1 and ap[-2] == path[-1]:
 				yield ap, at
 
 	def get_attributes(self, path):
@@ -353,6 +353,7 @@ class DumpState(OMXState):
 			repeat = lpath == self.path
 			self.path = lpath
 
+			# this could be refactored by merging the two main branches
 			if target is None:
 				if repeat:
 					yield 'end', None
