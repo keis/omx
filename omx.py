@@ -38,6 +38,15 @@ class Target(object):
 		self.singleton = singleton
 		self._data = None if singleton else []
 
+
+	def __repr__(self):
+		return '<Target %s (%s)>' % (self.name, len(self))
+
+	def __len__(self):
+		if self.singleton:
+			return 0 if self._data is None else 1
+		return len(self._data)
+
 	@property
 	def empty(self):
 		if self.singleton:
@@ -238,7 +247,7 @@ class OMXState(object):
 		if singleton is None:
 			singleton = not indirect and \
 				all(p[-1][0] == '@' or p[-1].endswith('()') for p in paths)
-		paths = [tuple(self.path + p) for p in paths]
+		paths = [tuple((self.path or []) + p) for p in paths]
 
 		# Create handle
 		target = Target(name, singleton)
@@ -279,17 +288,32 @@ class OMXState(object):
 			if v in templatedata.values:
 				del self.targets[k]
 
-	def next_target(self, path):
-		tpaths = [p for p in self.targets.keys() if p[-1][0] != '@']
-		tpaths.sort()
+	def next_target(self, path=None):
 		if path is None:
+			path = self.path
+
+		if isinstance(path, str):
+			path = path.strip(' /').split('/')
+
+		tpaths = [p for p in self.targets.keys() if not p[-1][0].startswith('@')]
+		tpaths.sort()
+		if len(path) == 0:
 			i = -1
 		else:
 			i = tpaths.index(tuple(path))
 		if len(tpaths) > i + 1 and (path is None or tpaths[i + 1][-2] == path[-1]):
-			return tpaths[i + 1], self.targets[tpaths[i + 1]] or IntermediateFirst
+			target = self.targets[tpaths[i + 1]]
+			if target is None:
+				return tpaths[i + 1], IntermediateFirst
+			else:
+				return tpaths[i + 1], target
 		else:
-			return tpaths[i], self.targets[tpaths[i]] or IntermediateRepeat
+			target = self.targets[tpaths[i]]
+			if target is None:
+				return tpaths[i], IntermediateRepeat
+			else:
+				return tpaths[i], target
+
 
 	def children(self, path):
 		if isinstance(path, str):
@@ -321,7 +345,6 @@ class DumpState(OMXState):
 		path, target = self.targets.items()[0]
 		target.add(obj)
 
-		self.path = None
 		while len(self.targets) > 0:
 			path, target = self.next_target(self.path)
 			self.path = list(path)
