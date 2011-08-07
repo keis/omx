@@ -297,10 +297,12 @@ class OMXState(object):
 
 		tpaths = [p for p in self.targets.keys() if not p[-1][0].startswith('@')]
 		tpaths.sort()
+
 		if len(path) == 0:
-			i = -1
-		else:
-			i = tpaths.index(tuple(path))
+			path = tpaths[0]
+			return path, self.targets[path]
+		i = tpaths.index(tuple(path))
+
 		if len(tpaths) > i + 1 and (path is None or tpaths[i + 1][-2] == path[-1]):
 			target = self.targets[tpaths[i + 1]]
 			return tpaths[i + 1], target
@@ -337,8 +339,9 @@ class DumpState(OMXState):
 
 		while len(self.targets) > 0:
 			path, target = self.next_target(self.path)
-			repeat = list(path) == self.path
-			self.path = list(path)
+			lpath = list(path)
+			repeat = lpath == self.path
+			self.path = lpath
 
 			if target is None:
 				if repeat:
@@ -354,24 +357,27 @@ class DumpState(OMXState):
 					self.path.pop()
 
 			else:
+				if repeat:
+					assert isinstance(target.value, TemplateData)
+					yield 'end', None
+					target.pop()
+
 				if target.empty:
 					del self.targets[path]
 					self.path.pop()
 					continue
 
-				d = target.value
-				if isinstance(d, TemplateData):
-					yield 'end', None
-					target.pop()
-				else:
-					template = self.omx.get_template(path)
-					data = TemplateData(template, self)
-					data.dump(d)
-					target.value = data
-					element = etree.Element(data.template.match)
-					attributes = dict(self.get_attributes(path))
-					element.attrib.update(attributes)
-					yield 'start', element
+				# Set up new template data
+				template = self.omx.get_template(path)
+				data = TemplateData(template, self)
+				data.dump(target.value)
+				target.value = data
+
+				# Create element
+				element = etree.Element(data.template.match)
+				attributes = dict(self.get_attributes(path))
+				element.attrib.update(attributes)
+				yield 'start', element
 
 
 class LoadState(OMXState):
