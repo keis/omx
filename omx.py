@@ -303,16 +303,10 @@ class OMXState(object):
 			i = tpaths.index(tuple(path))
 		if len(tpaths) > i + 1 and (path is None or tpaths[i + 1][-2] == path[-1]):
 			target = self.targets[tpaths[i + 1]]
-			if target is None:
-				return tpaths[i + 1], IntermediateFirst
-			else:
-				return tpaths[i + 1], target
+			return tpaths[i + 1], target
 		else:
 			target = self.targets[tpaths[i]]
-			if target is None:
-				return tpaths[i], IntermediateRepeat
-			else:
-				return tpaths[i], target
+			return tpaths[i], target
 
 
 	def children(self, path):
@@ -333,10 +327,6 @@ class OMXState(object):
 				yield ap[-1][1:], v
 
 
-IntermediateFirst = object()
-IntermediateRepeat = object()
-
-
 class DumpState(OMXState):
 	def __init__(self, omx):
 		OMXState.__init__(self, omx)
@@ -347,20 +337,16 @@ class DumpState(OMXState):
 
 		while len(self.targets) > 0:
 			path, target = self.next_target(self.path)
+			repeat = list(path) == self.path
 			self.path = list(path)
 
-			if target is IntermediateFirst:
-				element = etree.Element(path[-1])
-				attributes = dict(self.get_attributes(path))
-				element.attrib.update(attributes)
-				yield 'start', element
+			if target is None:
+				if repeat:
+					yield 'end', None
 
-			elif target is IntermediateRepeat:
-				yield 'end', None
-
-				element = etree.Element(path[-1])
 				attributes = dict(self.get_attributes(path))
-				if attributes:
+				if attributes or list(self.children(path)):
+					element = etree.Element(path[-1])
 					element.attrib.update(attributes)
 					yield 'start', element
 				else:
@@ -372,6 +358,7 @@ class DumpState(OMXState):
 					del self.targets[path]
 					self.path.pop()
 					continue
+
 				d = target.value
 				if isinstance(d, TemplateData):
 					yield 'end', None

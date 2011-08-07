@@ -3,7 +3,7 @@
 import unittest
 
 from omx import OMX, Template
-from omx import OMXState, TemplateData, IntermediateFirst, IntermediateRepeat
+from omx import OMXState, TemplateData
 
 
 class Singleton(unittest.TestCase):
@@ -36,7 +36,7 @@ class Iterate(unittest.TestCase):
 		baz = self.state.add_target('/base/foo/bar/baz', 'baz')
 
 		a = self.state.next_target(None)
-		self.assertEquals(a[1], IntermediateFirst)
+		self.assertEquals(a[1], None)
 
 		b = self.state.next_target(a[0])
 		self.assertEquals(b[1], foo)
@@ -58,7 +58,7 @@ class Iterate(unittest.TestCase):
 		visited = []
 
 		path, t = self.state.next_target(None)
-		self.assertEquals(t, IntermediateFirst)
+		self.assertEquals(t, None)
 		lpath = list(path)
 
 		while len(self.state.targets):
@@ -69,7 +69,7 @@ class Iterate(unittest.TestCase):
 			del self.state.targets[path]
 
 		visited.sort()
-		expected = [foo, bar, baz, IntermediateRepeat]
+		expected = [foo, bar, baz, None]
 		expected.sort()
 		self.assertEquals(visited, expected)
 	
