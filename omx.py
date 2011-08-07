@@ -233,7 +233,7 @@ class OMXState(object):
 
 		# combine path(s) with current path and detect if the path
 		# should be marked as a singleton target
-		paths = [p.strip().split('/') for p in path.split('|')]
+		paths = [p.strip(' /').split('/') for p in path.split('|')]
 		indirect = any(len(p) > 1 for p in paths)
 		if singleton is None:
 			singleton = not indirect and \
@@ -268,7 +268,7 @@ class OMXState(object):
 			path = self.path
 
 		if isinstance(path, str):
-			path = path.split('/')
+			path = path.strip(' /').split('/')
 
 		return self.targets[tuple(path)]
 
@@ -292,6 +292,9 @@ class OMXState(object):
 			return tpaths[i], self.targets[tpaths[i]] or IntermediateRepeat
 
 	def children(self, path):
+		if isinstance(path, str):
+			path = path.strip(' /').split('/')
+
 		pl = len(path)
 		for ap, at in self.targets.items():
 			if len(ap) == pl + 1:

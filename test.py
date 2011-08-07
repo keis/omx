@@ -120,7 +120,7 @@ class Children(unittest.TestCase):
 		self.state.add_target('/base/foo', 'foo')
 		self.state.add_target('/base/bar', 'bar')
 
-		c = self.state.children(('', 'base',))
+		c = self.state.children('/base')
 		c = list(c)
 		self.assertTrue(len(c), 2)
 
@@ -128,7 +128,7 @@ class Children(unittest.TestCase):
 		self.state.add_target('/base/foo', 'foo')
 		self.state.add_target('/base/bar', 'bar')
 
-		c = self.state.children(('', 'base', 'foo'))
+		c = self.state.children('/base/foo')
 		self.assertEqual(list(c), [])
 
 	def test_level(self):
@@ -136,14 +136,14 @@ class Children(unittest.TestCase):
 		self.state.add_target('/base/bar', 'bar')
 		self.state.add_target('/test', 'test')
 
-		c = self.state.children(('', 'test'))
+		c = self.state.children('/test')
 		self.assertEqual(list(c), [])
 
 	def test_invalid(self):
 		self.state.add_target('/base/foo', 'foo')
 		self.state.add_target('/base/bar', 'bar')
 
-		c = self.state.children(('', 'test',))
+		c = self.state.children('/test')
 		self.assertEqual(list(c), [])
 
 if __name__ == '__main__':
