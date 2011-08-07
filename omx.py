@@ -233,7 +233,7 @@ class OMXState(object):
 	def __init__(self, omx):
 		self.omx = omx
 		self.path = []
-		self.targets = {}
+		self.__targets = {}
 
 	def add_target(self, path, name, singleton=None):
 		''' Registers elements at 'path' relative the current path to be saved
@@ -255,18 +255,21 @@ class OMXState(object):
 		# Currently only supports one target per element
 		# May change if a proper usecase is found
 		for path in paths:
-			if path in self.targets and self.targets[path] is not None:
+			if path in self.__targets and self.__targets[path] is not None:
 				raise Exception("Path already claimed (%s %s)" % (path, name))
 
 		for path in paths:
-			self.targets[path] = target
+			self.__targets[path] = target
 
 			# Add null targets for unclaimed intermediate steps
 			for l in range(len(path), 0, -1):
-				if path[:l] not in self.targets:
-					self.targets[path[:l]] = None
+				if path[:l] not in self.__targets:
+					self.__targets[path[:l]] = None
 
 		return target
+
+	def has_target(self):
+		return len(self.__targets) > 0
 
 	def get_target(self, path=None):
 		''' Get the Target instance registered for 'path' or the current path
@@ -279,14 +282,23 @@ class OMXState(object):
 		if isinstance(path, str):
 			path = path.strip(' /').split('/')
 
-		return self.targets[tuple(path)]
+		return self.__targets[tuple(path)]
+
+	def remove_target(self, path=None):
+		if path is None:
+			path = self.path
+
+		if isinstance(path, str):
+			path = path.strip(' /').split('/')
+
+		del self.__targets[tuple(path)]
 
 	def prune_targets(self, templatedata):
 		''' Removes all targets registered for 'templatedata' '''
 
-		for k, v in self.targets.items():
+		for k, v in self.__targets.items():
 			if v in templatedata.values:
-				del self.targets[k]
+				self.remove_target(k)
 
 	def next_target(self, path=None):
 		if path is None:
@@ -295,28 +307,27 @@ class OMXState(object):
 		if isinstance(path, str):
 			path = path.strip(' /').split('/')
 
-		tpaths = [p for p in self.targets.keys() if not p[-1][0].startswith('@')]
+		tpaths = [p for p in self.__targets.keys() if not p[-1][0].startswith('@')]
 		tpaths.sort()
 
 		if len(path) == 0:
 			path = tpaths[0]
-			return path, self.targets[path]
+			return path, self.__targets[path]
 		i = tpaths.index(tuple(path))
 
 		if len(tpaths) > i + 1 and (path is None or tpaths[i + 1][-2] == path[-1]):
-			target = self.targets[tpaths[i + 1]]
+			target = self.__targets[tpaths[i + 1]]
 			return tpaths[i + 1], target
 		else:
-			target = self.targets[tpaths[i]]
+			target = self.__targets[tpaths[i]]
 			return tpaths[i], target
-
 
 	def children(self, path):
 		if isinstance(path, str):
 			path = path.strip(' /').split('/')
 
 		pl = len(path)
-		for ap, at in self.targets.items():
+		for ap, at in self.__targets.items():
 			if len(ap) == pl + 1:
 				yield ap, at
 
@@ -325,7 +336,7 @@ class OMXState(object):
 			if ap[-1][0] == '@':
 				v = at.pop()
 				if at.empty:
-					del self.targets[ap]
+					del self.__targets[ap]
 				yield ap[-1][1:], v
 
 
@@ -334,11 +345,10 @@ class DumpState(OMXState):
 		OMXState.__init__(self, omx)
 
 	def dump(self, obj):
-		path, target = self.targets.items()[0]
-		target.add(obj)
+		self.next_target()[1].add(obj)
 
-		while len(self.targets) > 0:
-			path, target = self.next_target(self.path)
+		while self.has_target():
+			path, target = self.next_target()
 			lpath = list(path)
 			repeat = lpath == self.path
 			self.path = lpath
@@ -353,7 +363,7 @@ class DumpState(OMXState):
 					element.attrib.update(attributes)
 					yield 'start', element
 				else:
-					del self.targets[path]
+					self.remove_target(path)
 					self.path.pop()
 
 			else:
@@ -363,7 +373,7 @@ class DumpState(OMXState):
 					target.pop()
 
 				if target.empty:
-					del self.targets[path]
+					self.remove_target(path)
 					self.path.pop()
 					continue
 

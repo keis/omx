@@ -61,12 +61,12 @@ class Iterate(unittest.TestCase):
 		self.assertEquals(t, None)
 		lpath = list(path)
 
-		while len(self.state.targets):
+		while self.state.has_target():
 			path, t = self.state.next_target(lpath)
 			visited.append(t)
 			lpath = list(path)
 			lpath.pop()
-			del self.state.targets[path]
+			self.state.remove_target(path)
 
 		visited.sort()
 		expected = [foo, bar, baz, None]
@@ -103,7 +103,7 @@ class Add(unittest.TestCase):
 	def test_intermediate(self):
 		foo = self.state.add_target('/base/foo/foo/foo', 'foo')
 
-		self.assertTrue(len(self.state.targets), 4)
+		self.assertTrue(len(self.state._OMXState__targets), 4)
 		self.assertTrue(self.state.get_target('/base') is None)
 		self.assertTrue(self.state.get_target('/base/foo') is None)
 		self.assertTrue(self.state.get_target('/base/foo/foo') is None)
