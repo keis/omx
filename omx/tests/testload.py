@@ -19,7 +19,6 @@ class Basic(OMXTest):
 			factory=lambda uid, bar: ('foo', uid))
 		bart = Template('bar')
 		omx = OMX((foot, bart), 'foo')
-
 		result = omx.load(self.data)
 
 		self.assertEqual(result, ('foo', 'buba'))

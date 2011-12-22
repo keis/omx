@@ -8,10 +8,9 @@ class DumpState(OMXState):
 		OMXState.__init__(self, omx)
 
 	def dump(self, obj):
-		self.next_target()[1].add(obj)
+		next(self.itertargets())[1].add(obj)
 
-		while self.has_target():
-			path, target = self.next_target()
+		for path, target in self.itertargets():
 			lpath = list(path)
 			repeat = lpath == self.path
 			self.path = lpath

@@ -1,5 +1,7 @@
 # vim: noet:ts=4:sw=4:
 
+import itertools
+
 class Target(object):
 	''' Holds the data passed to a factory as 'name'
 
@@ -207,6 +209,14 @@ class TargetDir(object):
 			raise Exception('sub-tree not empty')
 		del parent[p]
 
+	def emptytree(self, path):
+		path = self.path(path)
+		current = self.__targets
+		for p in path:
+			parent = current
+			(current, target) = current[p]
+		current.clear()
+
 	def children(self, path):
 		path = self.path(path)
 		current = self.__targets
@@ -233,7 +243,9 @@ def traverse(dir):
 			continue
 		children = dir.children(path)
 		try:
-			path, v = next(children)
+			path, v = next(itertools.dropwhile(
+				lambda x: x[0][-1].startswith('@'),
+				children))
 		except StopIteration:
 			if v is None and path == ():
 				return
@@ -244,7 +256,7 @@ class OMXState(object):
 	def __init__(self, omx):
 		self.omx = omx
 		self.path = []
-		self.__targets = {}
+		self.__targets = TargetDir()
 
 	def add_target(self, path, name, singleton=None):
 		''' Registers elements at 'path' relative the current path to be saved
@@ -253,7 +265,7 @@ class OMXState(object):
 
 		# combine path(s) with current path and detect if the path
 		# should be marked as a singleton target
-		paths = [p.strip(' /').split('/') for p in path.split('|')]
+		paths = [self.__targets.path(p) for p in path.split('|')]
 		indirect = any(len(p) > 1 for p in paths)
 		if singleton is None:
 			singleton = not indirect and \
@@ -263,24 +275,13 @@ class OMXState(object):
 		# Create handle
 		target = Target(name, singleton)
 
-		# Currently only supports one target per element
-		# May change if a proper usecase is found
 		for path in paths:
-			if path in self.__targets and self.__targets[path] is not None:
-				raise Exception("Path already claimed (%s %s)" % (path, name))
-
-		for path in paths:
-			self.__targets[path] = target
-
-			# Add null targets for unclaimed intermediate steps
-			for l in range(len(path), 0, -1):
-				if path[:l] not in self.__targets:
-					self.__targets[path[:l]] = None
+			self.__targets.add(path, target)
 
 		return target
 
 	def has_target(self):
-		return len(self.__targets) > 0
+		return not self.__targets.empty
 
 	def get_target(self, path=None):
 		''' Get the Target instance registered for 'path' or the current path
@@ -289,62 +290,32 @@ class OMXState(object):
 
 		if path is None:
 			path = self.path
-		elif isinstance(path, str):
-			path = path.strip(' /').split('/')
 
-		return self.__targets[tuple(path)]
+		return self.__targets.get(path)
 
 	def remove_target(self, path=None):
 		if path is None:
 			path = self.path
-		elif isinstance(path, str):
-			path = path.strip(' /').split('/')
 
-		del self.__targets[tuple(path)]
+		return self.__targets.remove(path)
 
-	def prune_targets(self, templatedata):
+	def prune_targets(self, path):
 		''' Removes all targets registered for 'templatedata' '''
+		self.__targets.emptytree(path)
 
-		for k, v in self.__targets.items():
-			if v in templatedata.values:
-				self.remove_target(k)
-
-	def next_target(self, path=None):
-		if path is None:
-			path = self.path
-		elif isinstance(path, str):
-			path = path.strip(' /').split('/')
-
-		tpaths = [p for p in self.__targets.keys() if not p[-1][0].startswith('@')]
-		tpaths.sort()
-
-		if len(path) == 0:
-			path = tpaths[0]
-			return path, self.__targets[path]
-		i = tpaths.index(tuple(path))
-
-		if len(tpaths) > i + 1 and (path is None or tpaths[i + 1][-2] == path[-1]):
-			target = self.__targets[tpaths[i + 1]]
-			return tpaths[i + 1], target
-		else:
-			target = self.__targets[tpaths[i]]
-			return tpaths[i], target
+	def itertargets(self):
+		return traverse(self.__targets)
 
 	def children(self, path=None):
 		if path is None:
 			path = self.path
-		elif isinstance(path, str):
-			path = path.strip(' /').split('/')
 
-		pl = len(path)
-		for ap, at in self.__targets.items():
-			if len(ap) == pl + 1 and ap[-2] == path[-1]:
-				yield ap, at
+		return self.__targets.children(path)
 
 	def get_attributes(self, path=None):
 		for ap, at in self.children(path):
 			if ap[-1][0] == '@':
 				v = at.pop()
 				if at.empty:
-					del self.__targets[ap]
+					self.__targets.remove(ap)
 				yield ap[-1][1:], v

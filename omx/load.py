@@ -77,15 +77,15 @@ class LoadState(OMXState):
 			pass
 
 		target = self.get_target()
-		self.path.pop()
 		if target is None:
+			self.path.pop()
 			return
 
 		# Create object from TemplateData and clean up
 		data = target.value
 
 		assert isinstance(data, TemplateData)
-		self.prune_targets(data)
+		self.prune_targets(self.path)
 
 		obj = data.create()
 
@@ -94,4 +94,6 @@ class LoadState(OMXState):
 		# Save in ID dictionary if id is set
 		if 'id' in element.attrib:
 			self.context['ids'][element.attrib['id']] = obj
+
+		self.path.pop()
 

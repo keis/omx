@@ -26,29 +26,26 @@ class Iterate(unittest.TestCase):
 	def setUp(self):
 		self.state = OMXState(self.omx)
 
-	def test_empty(self):
-		# dunno what should happen
-		# t = self.state.next_target(None)
-		pass
-
 	def test_deep(self):
 		foo = self.state.add_target('/base/foo', 'foo')
 		bar = self.state.add_target('/base/foo/bar', 'bar')
 		baz = self.state.add_target('/base/foo/bar/baz', 'baz')
 
-		a = self.state.next_target(None)
+		i = self.state.itertargets()
+
+		a = next(i)
 		self.assertEquals(a[1], None)
 
-		b = self.state.next_target(a[0])
+		b = next(i)
 		self.assertEquals(b[1], foo)
 
-		c = self.state.next_target(b[0])
+		c = next(i)
 		self.assertEquals(c[1], bar)
 
-		d = self.state.next_target(c[0])
+		d = next(i)
 		self.assertEquals(d[1], baz)
 
-		e = self.state.next_target(d[0])
+		e = next(i)
 		self.assertEquals(e[1], baz)
 
 	def test_wide(self):
@@ -58,21 +55,16 @@ class Iterate(unittest.TestCase):
 
 		visited = []
 
-		path, t = self.state.next_target(None)
+		i = self.state.itertargets()
+		path, t = next(i)
 		self.assertEquals(t, None)
-		lpath = list(path)
 
-		while self.state.has_target():
-			path, t = self.state.next_target(lpath)
+		for path, t in i:
 			visited.append(t)
-			lpath = list(path)
-			lpath.pop()
 			self.state.remove_target(path)
 
-		visited.sort()
 		expected = [foo, bar, baz, None]
-		expected.sort()
-		self.assertEquals(visited, expected)
+		self.assertItemsEqual(visited, expected)
 	
 
 class Add(unittest.TestCase):
@@ -104,7 +96,6 @@ class Add(unittest.TestCase):
 	def test_intermediate(self):
 		foo = self.state.add_target('/base/foo/foo/foo', 'foo')
 
-		self.assertTrue(len(self.state._OMXState__targets), 4)
 		self.assertTrue(self.state.get_target('/base') is None)
 		self.assertTrue(self.state.get_target('/base/foo') is None)
 		self.assertTrue(self.state.get_target('/base/foo/foo') is None)
