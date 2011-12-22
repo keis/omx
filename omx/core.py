@@ -160,6 +160,85 @@ class TemplateData(object):
 				t.set(kwargs[t.name])
 
 
+class TargetDir(object):
+	def __init__(self):
+		self.__targets = {}
+
+	def path(cls, pstr):
+		if isinstance(pstr, basestring):
+			return pstr.strip(' /').split('/')
+		return pstr
+
+	def get(self, path):
+		path = self.path(path)
+		current = self.__targets
+		target = None
+		for p in path:
+			(current, target) = current[p]
+		return target
+
+	def __insert(self, path, target):
+		current = self.__targets
+		old = None
+		for p in path:
+			parent = current
+			try:
+				(current, old) = current[p]
+			except KeyError:
+				tmp = ({}, None)
+				current[p] = tmp
+				(current, old) = tmp
+		if old is not None:
+			raise Exception('Path already claimed by %r' % old)
+		parent[p] = (current, target)
+
+	def add(self, path, target):
+		path = self.path(path)
+		self.__insert(path, target)
+		return target
+
+	def remove(self, path):
+		path = self.path(path)
+		current = self.__targets
+		for p in path:
+			parent = current
+			(current, target) = current[p]
+		if len(current) > 0:
+			raise Exception('sub-tree not empty')
+		del parent[p]
+
+	def children(self, path):
+		path = self.path(path)
+		current = self.__targets
+		for p in path:
+			try:
+				(current, target) = current[p]
+			except KeyError:
+				return
+		for key, (g, child) in current.items():
+			yield (tuple(path) + (key,), child)
+
+	@property
+	def empty(self):
+		return len(self.__targets) == 0
+
+
+def traverse(dir):
+	path = ()
+	while True:
+		try:
+			v = dir.get(path)
+		except KeyError:
+			path = path[:-1]
+			continue
+		children = dir.children(path)
+		try:
+			path, v = next(children)
+		except StopIteration:
+			if v is None and path == ():
+				return
+		yield path, v
+
 
 class OMXState(object):
 	def __init__(self, omx):
