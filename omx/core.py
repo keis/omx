@@ -163,6 +163,8 @@ class TemplateData(object):
 
 
 class TargetDir(object):
+	fill = object()
+
 	def __init__(self):
 		self.__targets = {}
 
@@ -171,59 +173,22 @@ class TargetDir(object):
 			return pstr.strip(' /').split('/')
 		return pstr
 
-	def get(self, path):
-		path = self.path(path)
-		current = self.__targets
+	def __query(self, path, onaction=None):
+		parent = None
 		target = None
-		for p in path:
-			(current, target) = current[p]
-		return target
-
-	def __insert(self, path, target):
 		current = self.__targets
-		old = None
 		for p in path:
 			parent = current
 			try:
-				(current, old) = current[p]
+				(current, target) = current[p]
 			except KeyError:
-				tmp = ({}, None)
-				current[p] = tmp
-				(current, old) = tmp
-		if old is not None:
-			raise Exception('Path already claimed by %r' % old)
-		parent[p] = (current, target)
-
-	def add(self, path, target):
-		path = self.path(path)
-		self.__insert(path, target)
-		return target
-
-	def remove(self, path):
-		path = self.path(path)
-		current = self.__targets
-		for p in path:
-			parent = current
-			(current, target) = current[p]
-		if len(current) > 0:
-			raise Exception('sub-tree not empty')
-		del parent[p]
-
-	def emptytree(self, path):
-		path = self.path(path)
-		current = self.__targets
-		for p in path:
-			parent = current
-			(current, target) = current[p]
-		current.clear()
-
-	def children(self, path):
-		path = self.path(path)
-		current = self.__targets
-		for p in path:
-			(current, target) = current[p]
-		for key, (g, child) in current.items():
-			yield (tuple(path) + (key,), child)
+				if onaction is self.fill:
+					tmp = ({}, None)
+					current[p] = tmp
+					(current, target) = tmp
+				else:
+					raise
+		return parent, current, target
 
 	def __dfs(self, val, pre, ctx):
 		for i, (child_ctx,t) in ctx.items():
@@ -232,6 +197,37 @@ class TargetDir(object):
 				yield val(p, t)
 			for x in self.__dfs(val, p, child_ctx):
 				yield x
+
+	def get(self, path):
+		path = self.path(path)
+		parent, current, target = self.__query(path)
+		return target
+
+	def add(self, path, target):
+		path = self.path(path)
+		parent, current, old = self.__query(path, self.fill)
+		if old is not None:
+			raise Exception('Path already claimed by %r' % old)
+		parent[path[-1]] = (current, target)
+		return target
+
+	def remove(self, path):
+		path = self.path(path)
+		parent, current, target = self.__query(path)
+		if len(current) > 0:
+			raise Exception('sub-tree not empty')
+		del parent[path[-1]]
+
+	def emptytree(self, path):
+		path = self.path(path)
+		parent, current, target = self.__query(path)
+		current.clear()
+
+	def children(self, path):
+		path = self.path(path)
+		parent, current, target = self.__query(path)
+		for key, (g, child) in current.items():
+			yield (tuple(path) + (key,), child)
 
 	def keys(self):
 		return self.__dfs((lambda p, t: p), (), self.__targets)
