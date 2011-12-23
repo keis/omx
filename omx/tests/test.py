@@ -135,8 +135,7 @@ class Children(unittest.TestCase):
 		self.state.add_target('/base/foo', 'foo')
 		self.state.add_target('/base/bar', 'bar')
 
-		c = self.state.children('/test')
-		self.assertEqual(list(c), [])
+		self.assertRaises(KeyError, list, self.state.children('/test'))
 
 if __name__ == '__main__':
 	unittest.main()

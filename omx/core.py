@@ -221,10 +221,7 @@ class TargetDir(object):
 		path = self.path(path)
 		current = self.__targets
 		for p in path:
-			try:
-				(current, target) = current[p]
-			except KeyError:
-				return
+			(current, target) = current[p]
 		for key, (g, child) in current.items():
 			yield (tuple(path) + (key,), child)
 

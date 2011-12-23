@@ -239,5 +239,4 @@ class Children(unittest.TestCase):
 		self.dir.add('/base/foo', 'foo')
 		self.dir.add('/base/bar', 'bar')
 
-		c = list(self.dir.children('/test'))
-		self.assertEqual(c, [])
+		self.assertRaises(KeyError, list, self.dir.children('/test'))
