@@ -228,6 +228,23 @@ class TargetDir(object):
 		for key, (g, child) in current.items():
 			yield (tuple(path) + (key,), child)
 
+	def __dfs(self, val, pre, ctx):
+		for i, (child_ctx,t) in ctx.items():
+			p = (pre + (i,))
+			if t is not None:
+				yield val(p, t)
+			for x in self.__dfs(val, p, child_ctx):
+				yield x
+
+	def keys(self):
+		return self.__dfs((lambda p, t: p), (), self.__targets)
+
+	def values(self):
+		return self.__dfs((lambda p, t: t), (), self.__targets)
+
+	def items(self):
+		return self.__dfs((lambda p, t: (p, t)), (), self.__targets)
+
 	@property
 	def empty(self):
 		return len(self.__targets) == 0

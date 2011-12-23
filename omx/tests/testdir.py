@@ -64,6 +64,46 @@ class Position(unittest.TestCase):
 		self.assertIs(self.dir.get('/base/foo/foo/foo'), foo)
 
 
+class Collection(unittest.TestCase):
+	'''
+		TargetDir features are very similiar to a collection for a nice
+		interface lets assert a few more requirements of the collection protocol.
+	'''
+
+	def setUp(self):
+		self.dir = TargetDir()
+
+	def test_empty_keys(self):
+		self.assertEquals(list(self.dir.keys()), [])
+
+	def test_empty_values(self):
+		self.assertEquals(list(self.dir.values()), [])
+
+	def test_empty_items(self):
+		self.assertEquals(list(self.dir.items()), [])
+
+	def test_one_key(self):
+		self.dir.add('/foo/bar', 'FOO')
+		self.assertItemsEqual(
+			list(self.dir.keys()),
+			[('foo', 'bar')]
+		)
+
+	def test_one_value(self):
+		self.dir.add('/foo/bar', 'FOO')
+		self.assertItemsEqual(
+			list(self.dir.values()),
+			['FOO']
+		)
+
+	def test_one_item(self):
+		self.dir.add('/foo/bar', 'FOO')
+		self.assertItemsEqual(
+			list(self.dir.items()),
+			[(('foo', 'bar'), 'FOO')]
+		)
+
+
 class Traverse(unittest.TestCase):
 	def setUp(self):
 		self.dir = TargetDir()
