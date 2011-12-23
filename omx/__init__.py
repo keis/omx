@@ -19,7 +19,7 @@
 __all__ = ('OMX', 'template', 'Template')
 
 from lxml import etree
-from .core import template, Template
+from template import template, Template
 
 class OMX(object):
 	''' Defines how a XML document is converted into objects '''
