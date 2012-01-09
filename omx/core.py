@@ -207,6 +207,10 @@ class TargetDir(object):
 
 
 def traverse(dir):
+	def psuedoelement(p):
+		t = p[0][-1]
+		return t.startswith('@') or t.endswith('()')
+
 	path = ()
 	while True:
 		try:
@@ -216,9 +220,7 @@ def traverse(dir):
 			continue
 		children = dir.children(path)
 		try:
-			path, v = next(itertools.dropwhile(
-				lambda x: x[0][-1].startswith('@'),
-				children))
+			path, v = next(itertools.dropwhile(psuedoelement, children))
 		except StopIteration:
 			if v is None and path == ():
 				return
@@ -292,3 +294,11 @@ class OMXState(object):
 				if at.empty:
 					self.__targets.remove(ap)
 				yield ap[-1][1:], v
+
+	def get_text(self, path=None):
+		for ap, at in self.children(path):
+			if ap[-1] == 'text()':
+				v = at.pop()
+				if at.empty:
+					self.__targets.remove(ap)
+				return v

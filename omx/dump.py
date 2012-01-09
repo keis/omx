@@ -18,10 +18,12 @@ class DumpState(OMXState):
 				if repeat:
 					yield 'end', path[-1]
 
-				attributes = dict(self.get_attributes(path))
-				if attributes or list(self.children(path)):
+				if list(self.children(path)):
+					attributes = dict(self.get_attributes(path))
+					text = self.get_text(path)
 					element = etree.Element(path[-1])
 					element.attrib.update(attributes)
+					element.text = text
 					yield 'start', element
 				else:
 					self.remove_target(path)
@@ -47,5 +49,7 @@ class DumpState(OMXState):
 				# Create element
 				element = etree.Element(data.template.match)
 				attributes = dict(self.get_attributes(path))
+				text = self.get_text(path)
 				element.attrib.update(attributes)
+				element.text = text
 				yield 'start', element
