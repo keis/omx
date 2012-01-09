@@ -72,7 +72,7 @@ class Target(object):
 
 	def set(self, d):
 		if not self.singleton:
-			d = list(d)
+			d = list(d)[::-1]
 		self._data = d
 
 
@@ -170,7 +170,7 @@ class TargetDir(object):
 		path = self.path(path)
 		parent, current, old = self.__query(path, self.fill)
 		if old is not None:
-			raise Exception('Path already claimed by %r' % old)
+			raise Exception('Path [%r] already claimed by %r' % (path, old))
 		parent[path[-1]] = (current, target)
 		return target
 

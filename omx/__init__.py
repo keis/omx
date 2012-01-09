@@ -53,10 +53,11 @@ class OMX(object):
 		''' Maps 'obj' into a xml as defined by the templates '''
 		from .dump import DumpState
 		state = DumpState(self)
-		state.add_target(self.root, 'root', ('/' not in self.root))
+		target = state.add_target(self.root, 'root', ('/' not in self.root))
+		target.set(obj)
 
 		stack = []
-		for event, element in state.dump(obj):
+		for event, element in state.dump():
 			if event == 'start':
 				if stack:
 					stack[-1].append(element)
