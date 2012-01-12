@@ -10,8 +10,10 @@ class Dump(unittest.TestCase):
 	def test_attributes(self):
 		expected = '<foo id="buba"/>'
 		data = ('buba',)
-		foot = Template('foo', ('@id',),
-			serialiser=lambda obj: ((obj[0],), {}))
+		foot = Template(
+			'foo', ('@id',),
+			serialiser=lambda dump, obj: dump(obj[0])
+		)
 
 		omx = OMX((foot,), 'foo')
 
@@ -28,10 +30,11 @@ class Dump(unittest.TestCase):
 		rect = Template('rec', ('rec',))
 
 		@rect.serialiser
-		def rect(obj):
+		def rect(dump, obj):
 			if obj > 0:
-				return ([obj - 1],), {}
-			return ([],), {}
+				dump([obj - 1])
+			else:
+				dump([])
 
 		omx = OMX((rect,), 'rec')
 
@@ -45,9 +48,11 @@ class Dump(unittest.TestCase):
 		expected = '<root><persons><person name="foo"/><person name="bar"/></persons></root>'
 		data = ('root', ['foo', 'bar'])
 
-		roott = Template('root', (), {'persons/person/@name': 'names'},
+		roott = Template(
+			'root', (), {'persons/person/@name': 'names'},
 			lambda names=None: ('root', names),
-			lambda obj: ((), {'names': obj[1]}))
+			lambda dump, obj: dump(names=obj[1])
+		)
 
 		omx = OMX((roott,), 'root')
 
@@ -59,9 +64,10 @@ class Dump(unittest.TestCase):
 
 	def test_intermediate_root(self):
 		expected = '''<root><items><item key="foo">fooz</item><item key="bar">barz</item></items></root>'''
-		itemtt = Template('item', ('@key', 'text()'), {},
+		itemtt = Template(
+			'item', ('@key', 'text()'), {},
 			lambda key, value: (key, ''.join(value)),
-			lambda obj: (obj, {})
+			lambda dump, obj: dump(*obj)
 		)
 		omx = OMX((itemtt,), 'root/items/item')
 		result = omx.dump([('foo', 'fooz',), ('bar', 'barz')])

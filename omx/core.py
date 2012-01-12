@@ -115,14 +115,15 @@ class TemplateData(object):
 		return self.template._factory(*args, **kwargs)
 
 	def dump(self, obj):
-		(args, kwargs) = self.template._serialiser(obj)
-		args = list(args)
-		args.reverse()
-		for t in self.values:
-			if t.name is None:
-				t.set(args.pop())
-			else:
-				t.set(kwargs[t.name])
+		def values(*args, **kwargs):
+			args = list(args)
+			args.reverse()
+			for t in self.values:
+				if t.name is None:
+					t.set(args.pop())
+				else:
+					t.set(kwargs[t.name])
+		self.template._serialiser(values, obj)
 
 
 class TargetDir(object):
