@@ -76,6 +76,12 @@ class Target(object):
 		self._data = d
 
 
+class TemplateHint(object):
+	def __init__(self, template, obj):
+		self.template = template
+		self.obj = obj
+
+
 class TemplateData(object):
 	''' Collects the data need to create a object as defined by 'template'
 		When created registers targets for sub-objects with the OMXState.

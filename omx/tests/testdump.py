@@ -75,5 +75,29 @@ class Dump(unittest.TestCase):
 		result.write(out)
 		self.assertEqual(out.getvalue(), expected)
 
+class Multitarget(unittest.TestCase):
+	def test_multitarget(self):
+		expected = '<root><foo/><bar/><foo/></root>';
+		roott = Template('root', ('foo|bar',), {},
+			lambda fb: fb,
+			lambda dump, objs: dump(
+				[foot(obj) if obj == 'foo' else bart(obj) for obj in objs]
+			)
+		)
+		foot = Template('foo',
+			factory=lambda: 'foo',
+			serialiser=lambda dump, obj: dump()
+		)
+		bart = Template('bar',
+			factory=lambda: 'bar',
+			serialiser=lambda dump, obj: dump()
+		)
+		omx = OMX((roott, foot, bart), 'root')
+
+		result = omx.dump(['foo', 'bar', 'foo'])
+		out = StringIO()
+		result.write(out)
+		self.assertEqual(out.getvalue(), expected)
+
 if __name__ == '__main__':
 	unittest.main()

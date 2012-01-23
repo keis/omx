@@ -1,7 +1,7 @@
 # vim: noet:ts=4:sw=4:
 
 from lxml import etree
-from .core import OMXState, TemplateData
+from .core import OMXState, TemplateData, TemplateHint
 
 class DumpState(OMXState):
 	def __init__(self, omx):
@@ -41,9 +41,14 @@ class DumpState(OMXState):
 					continue
 
 				# Set up new template data
-				template = self.omx.get_template(path)
+				if isinstance(target.value, TemplateHint):
+					template = target.value.template
+					value = target.value.obj
+				else:
+					template = self.omx.get_template(path)
+					value = target.value
 				data = TemplateData(template, self)
-				data.dump(target.value)
+				data.dump(value)
 				target.value = data
 
 				# Create element

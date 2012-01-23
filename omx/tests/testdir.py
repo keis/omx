@@ -103,7 +103,6 @@ class Collection(unittest.TestCase):
 			[(('foo', 'bar'), 'FOO')]
 		)
 
-
 class Traverse(unittest.TestCase):
 	def setUp(self):
 		self.dir = TargetDir()
@@ -240,3 +239,19 @@ class Children(unittest.TestCase):
 		self.dir.add('/base/bar', 'bar')
 
 		self.assertRaises(KeyError, list, self.dir.children('/test'))
+
+
+class MultiTarget(unittest.TestCase):
+	def setUp(self):
+		self.dir = TargetDir()
+		self.base = self.dir.add('/base', 'base')
+		self.foobar = self.dir.add('/base/foo|/base/bar', 'foobar')
+		self.ab = self.dir.add('/base/baz/a|/base/baz/b', 'ab')
+
+	def test_traverse(self):
+		t = traverse(self.dir)
+		self.assertEquals(
+			next(t),
+			(('base',), self.base)
+		)
+		# TODO
