@@ -1,6 +1,7 @@
 # vim: noet:ts=4:sw=4:
 
 import itertools
+import decl
 
 class Target(object):
 	''' Holds the data passed to a factory as 'name'
@@ -138,11 +139,6 @@ class TargetDir(object):
 	def __init__(self):
 		self.__targets = {}
 
-	def path(cls, pstr):
-		if isinstance(pstr, basestring):
-			return pstr.strip(' /').split('/')
-		return pstr
-
 	def __query(self, path, onaction=None):
 		parent = None
 		target = None
@@ -169,12 +165,12 @@ class TargetDir(object):
 				yield x
 
 	def get(self, path):
-		path = self.path(path)
+		path = decl.path(path)
 		parent, current, target = self.__query(path)
 		return target
 
 	def add(self, path, target):
-		path = self.path(path)
+		path = decl.path(path)
 		parent, current, old = self.__query(path, self.fill)
 		if old is not None:
 			raise Exception('Path [%r] already claimed by %r' % (path, old))
@@ -182,19 +178,19 @@ class TargetDir(object):
 		return target
 
 	def remove(self, path):
-		path = self.path(path)
+		path = decl.path(path)
 		parent, current, target = self.__query(path)
 		if len(current) > 0:
 			raise Exception('sub-tree not empty')
 		del parent[path[-1]]
 
 	def emptytree(self, path):
-		path = self.path(path)
+		path = decl.path(path)
 		parent, current, target = self.__query(path)
 		current.clear()
 
 	def children(self, path):
-		path = self.path(path)
+		path = decl.path(path)
 		parent, current, target = self.__query(path)
 		for key, (g, child) in current.items():
 			yield (tuple(path) + (key,), child)
@@ -247,7 +243,7 @@ class OMXState(object):
 
 		# combine path(s) with current path and detect if the path
 		# should be marked as a singleton target
-		paths = [self.__targets.path(p) for p in path.split('|')]
+		paths = decl.target(path)
 		indirect = any(len(p) > 1 for p in paths)
 		if singleton is None:
 			singleton = not indirect and \
