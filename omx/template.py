@@ -1,4 +1,5 @@
 from .core import TemplateHint
+import decl
 
 ## TODO
 # Make Template a type
@@ -24,8 +25,8 @@ class Template(object):
 		self._factory = factory
 		self._serialiser = serialiser
 		# Store as sequence of key,value pairs to maintain order of ptargets
-		self.targets = (ktargets or {}).items()
-		self.targets += [(p, None) for p in (ptargets or [])]
+		self.targets = [(decl.target(k),v) for k,v in (ktargets or {}).items()]
+		self.targets += [(decl.target(p), None) for p in (ptargets or [])]
 
 	def __call__(self, obj):
 		return TemplateHint(self, obj)
