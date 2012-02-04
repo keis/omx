@@ -20,13 +20,17 @@ class Template(object):
 
 	def __init__(self, match, ptargets=None, ktargets=None,
 			factory=lambda: None,
-			serialiser=lambda obj: ((), {})):
+			serialiser=lambda obj: ((), {}),
+			references=None
+	):
 		self.match = match
 		self._factory = factory
 		self._serialiser = serialiser
 		# Store as sequence of key,value pairs to maintain order of ptargets
-		self.targets = [(decl.target(k),v) for k,v in (ktargets or {}).items()]
-		self.targets += [(decl.target(p), None) for p in (ptargets or [])]
+		self.targets = [(decl.target(k, references),v)
+			for k,v in (ktargets or {}).items()]
+		self.targets += [(decl.target(p, references), None)
+			for p in (ptargets or [])]
 
 	def __call__(self, obj):
 		return TemplateHint(self, obj)
@@ -43,7 +47,29 @@ class Template(object):
 		return self
 
 
-def template(name, ptargets=None, ktargets=None):
-	def decorator(func):
-		return Template(name, ptargets, ktargets, func)
-	return decorator
+class Namespace(object):
+	def __init__(self, url, **references):
+		self.url = url
+		self.references = references
+		self.references[''] = self.url
+		self._templates = {}
+		self.__prefix = '{%s}' % self.url if len(self.url) > 0 else ''
+
+	def get_template(self, path):
+		return self._templates[path[-1]]
+
+	def add_template(self, template):
+		self._templates[self.__prefix + template.match] = template
+
+	def template(self, name, ptargets=None, ktargets=None):
+		def decorator(func):
+			tmpl = Template(
+				name, ptargets, ktargets, func,
+				references=self.references
+			)
+			self.add_template(tmpl)
+			return tmpl
+		return decorator
+
+
+template = Namespace('').template

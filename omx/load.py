@@ -16,12 +16,12 @@ class LoadState(OMXState):
 			any attribute targets registered for the element
 
 		'''
-
+		namespace = element.nsmap.get(element.prefix, '')
 		self.path.append(element.tag)
 
 		try:
 			target = self.get_target()
-		except KeyError:
+		except KeyError as e:
 			# An early exit branch should be added to push/pop for the case
 			# when a subtree is not mapped to a object
 			raise Exception("SKIP not implemented (element without target '%s')"
@@ -32,7 +32,7 @@ class LoadState(OMXState):
 
 		if target is not None:
 			# Create TemplateData instance to collect data of this element
-			template = self.omx.get_template(self.path)
+			template = self.omx.get_template(namespace, self.path)
 			data = TemplateData(template, self)
 			target.add(data)
 			if 'id' in element.attrib:

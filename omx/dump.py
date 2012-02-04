@@ -8,6 +8,7 @@ class DumpState(OMXState):
 		OMXState.__init__(self, omx)
 
 	def dump(self):
+		namespace = ''  # FIXME
 		for path, target in self.itertargets():
 			lpath = list(path)
 			repeat = lpath == self.path
@@ -45,7 +46,7 @@ class DumpState(OMXState):
 					template = target.value.template
 					value = target.value.obj
 				else:
-					template = self.omx.get_template(path)
+					template = self.omx.get_template(namespace, path)
 					value = target.value
 				data = TemplateData(template, self)
 				data.dump(value)

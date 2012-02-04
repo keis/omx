@@ -19,18 +19,35 @@
 __all__ = ('OMX', 'template', 'Template')
 
 from lxml import etree
-from template import template, Template
+from template import template, Template, Namespace
 
 class OMX(object):
 	''' Defines how a XML document is converted into objects '''
 
-	def __init__(self, templates, root):
-		self.templates = dict((t.match, t) for t in templates)
+	def __init__(self, namespace, root):
 		self.root = root
+		self.ns = {}
 
-	def get_template(self, path):
+		templates = []
+		for ns in namespace:
+			if isinstance(ns, Template):
+				templates.append(ns)
+			else:
+				self.ns[ns.url] = ns
+
+		# Add any free templates to the unnamed namespace
+		if len(templates) > 0:
+			if '' not in self.ns:
+				self.ns[''] = ns = Namespace('')
+			else:
+				ns = self.ns['']
+
+			for t in templates:
+				ns.add_template(t)
+
+	def get_template(self, namespace, path):
 		''' Get the template used to map path into a object '''
-		return self.templates[path[-1]]
+		return self.ns[namespace].get_template(path)
 
 	def load(self, xmldata):
 		from .load import LoadState
