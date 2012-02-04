@@ -4,7 +4,8 @@ import itertools
 import decl
 
 class Target(object):
-	''' Holds the data passed to a factory as 'name'
+	'''
+		Holds the data passed to a factory as 'name'
 
 		In general 'data' will be a list of objects created from other templates,
 		but may be string when mapped to a attribute or text()
@@ -18,7 +19,6 @@ class Target(object):
 		self.name = name
 		self.singleton = singleton
 		self._data = None if singleton else []
-
 
 	def __repr__(self):
 		return '<Target %s (%s)>' % (self.name, len(self))
@@ -78,22 +78,33 @@ class Target(object):
 
 
 class TemplateHint(object):
+	'''
+		A template, obj pair used to disambiguate which template to
+		use when dumping `obj` e.g when present in a multitarget
+	'''
+
 	def __init__(self, template, obj):
 		self.template = template
 		self.obj = obj
 
 
 class TemplateData(object):
-	''' Collects the data need to create a object as defined by 'template'
+	'''
+		Collects the data need to create a object as defined by 'template'
 		When created registers targets for sub-objects with the OMXState.
 
-		template is the template that data is collected for
-		values is a list of Target instances for all sub-objects
+		`template` is the template that data is collected for
+		`values` is a list of Target instances for all sub-objects
 	'''
 	## TODO
 	# add method to verify values are of the proper type ?
 
 	def __init__(self, template, state):
+		'''
+			`template` a `Template` describing what data should be collected
+			`state` a `OmxState` object
+		'''
+
 		self.template = template
 		add = state.add_target
 		self.values = [add(path, name) for (path, name) in template.targets]
@@ -102,8 +113,10 @@ class TemplateData(object):
 		return '<TemplateData of %r>' % self.template
 
 	def create(self):
-		''' Creates a new object by calling the factory of the Template with
-			the values stored '''
+		'''
+			Creates a new object by calling the factory of the Template with
+			the values stored
+		'''
 
 		# Build positonal and keyword -arguments
 		args = []
@@ -237,8 +250,11 @@ class OMXState(object):
 		self.__targets = TargetDir()
 
 	def add_target(self, path, name, singleton=None):
-		''' Registers elements at 'path' relative the current path to be saved
-			in new Target named 'name'. Returns the new Target instance.
+		'''
+			Registers elements at `path` relative the current path to be saved
+			in new Target named `name`.
+
+			Returns the new `Target` instance.
 		'''
 
 		# combine path(s) with current path and detect if the path
@@ -262,8 +278,11 @@ class OMXState(object):
 		return not self.__targets.empty
 
 	def get_target(self, path=None):
-		''' Get the Target instance registered for 'path' or the current path
-			if None. Raises KeyError if no Target is registered for the path.
+		'''
+			Get the `Target` instance registered for `path` or the current path
+			if None.
+
+			Raises `KeyError` if no `Target` is registered for the path.
 		'''
 
 		if path is None:
@@ -278,7 +297,7 @@ class OMXState(object):
 		return self.__targets.remove(path)
 
 	def prune_targets(self, path):
-		''' Removes all targets registered for 'templatedata' '''
+		''' Removes all targets registered below `path` '''
 		self.__targets.emptytree(path)
 
 	def itertargets(self):

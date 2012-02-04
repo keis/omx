@@ -1,6 +1,7 @@
 #!/usr/bin/env python2
 # vim: noet:ts=4:sw=4:
-''' Omx Maps Xml
+'''
+	Omx Maps XML
 
 	A module for mapping XML into python objects by rules defined by templates
 
@@ -8,7 +9,8 @@
 	supports far from all parts of the specification (thus xpath like). In
 	addition to simple relative paths attributes may be access with @-symbol
 	and the text of a node with text(), but no other xpath functions is
-	supported.  '''
+	supported.
+'''
 
 ## TODO / Wishlist
 # Refactor Target singleton checks (method(s) in Target?) Serialisation reusing

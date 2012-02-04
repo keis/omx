@@ -9,12 +9,12 @@ class LoadState(OMXState):
 		self.context = {'ids': {}}
 
 	def push(self, element):
-		''' Called when the parser descends into the tree, causing a new element
+		'''	
+			Called when the parser descends into the tree, causing a new element
 			to be pushed to the end of the path.
 
 			Initialises a TemplateData instance for the element if needed and fills
 			any attribute targets registered for the element
-
 		'''
 		namespace = element.nsmap.get(element.prefix, '')
 		self.path.append(element.tag)
