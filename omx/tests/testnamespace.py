@@ -127,3 +127,12 @@ class BasicLoad(unittest.TestCase):
 
 		result = omx.load(StringIO(xmldata))
 		self.assertEquals(result, ['BAR?desc'])
+
+	def test_nsroot(self):
+		# where root element is namespaced
+		pass
+
+	def test_nsattribute(self):
+		# where attributes are namespaced
+		pass
+
