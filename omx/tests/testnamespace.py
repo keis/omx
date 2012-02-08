@@ -8,9 +8,20 @@ from .. import OMX, Template, template, Namespace
 class BasicLoad(unittest.TestCase):
 	## Vocabulary
 	foo = Namespace('http://dummy/foo')
-	@foo.template('link', (), {'@description': 'desc'})
-	def foo_link(desc=None):
-		return 'FOO' + ('?' + desc if desc else '')
+	@foo.template(
+		'link',
+		(),
+		{
+			'@description': 'desc',
+			':@date': 'date'
+		}
+	)
+	def foo_link(desc=None, date=None):
+		return (
+			'FOO' +
+			('?' + desc if desc else '') +
+			('?' + date if date else '')
+		)
 
 	bar = Namespace('http://dummy/bar')
 	@bar.template('link', (), {'description': 'desc'})
@@ -160,6 +171,10 @@ class BasicLoad(unittest.TestCase):
 		self.assertEquals(result, ['FOO?desc'])
 
 	def test_nsattribute_default(self):
+		'''
+			The default namespace does *not* apply to attributes
+		'''
+
 		rootns = Namespace(
 			'',
 			f='http://dummy/foo'
@@ -169,8 +184,8 @@ class BasicLoad(unittest.TestCase):
 		def root(flinks):
 			return flinks
 
-		xmldata = '<root><link xmlns="http://dummy/foo" description="desc"/></root>'
+		xmldata = '<root><link xmlns="http://dummy/foo" date="now"/></root>'
 		omx = OMX((self.foo, root), 'root')
 
 		result = omx.load(StringIO(xmldata))
-		self.assertEquals(result, ['FOO?desc'])
+		self.assertEquals(result, ['FOO?now'])

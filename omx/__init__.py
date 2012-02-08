@@ -55,7 +55,8 @@ class OMX(object):
 		from .load import LoadState
 		''' Maps 'xmldata' into objects as defined by the templates '''
 		state = LoadState(self)
-		root_target = state.add_target(self.root, 'root', ('/' not in self.root))
+		target = decl.target(self.root)
+		root_target = state.add_target(target, 'root', all(len(x) == 1 for x in target))
 
 		for event, element in etree.iterparse(xmldata, events=('start', 'end')):
 			if event == 'start':
