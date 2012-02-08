@@ -6,11 +6,11 @@ from StringIO import StringIO
 from .. import OMX, Template, template, Namespace
 
 class BasicLoad(unittest.TestCase):
-	## Vocabulary 
+	## Vocabulary
 	foo = Namespace('http://dummy/foo')
-	@foo.template('link')
-	def foo_link():
-		return 'FOO'
+	@foo.template('link', (), {'@description': 'desc'})
+	def foo_link(desc=None):
+		return 'FOO' + ('?' + desc if desc else '')
 
 	bar = Namespace('http://dummy/bar')
 	@bar.template('link', (), {'description': 'desc'})
@@ -129,10 +129,48 @@ class BasicLoad(unittest.TestCase):
 		self.assertEquals(result, ['BAR?desc'])
 
 	def test_nsroot(self):
-		# where root element is namespaced
-		pass
+		rootns = Namespace(
+			'http://dummy/root',
+		)
+
+		@rootns.template('root')
+		def root():
+			return 'ROOT'
+
+		xmldata = '<root xmlns="http://dummy/root"></root>'
+		omx = OMX((rootns,), '{http://dummy/root}root')
+
+		result = omx.load(StringIO(xmldata))
+		self.assertEquals(result, 'ROOT')
 
 	def test_nsattribute(self):
-		# where attributes are namespaced
-		pass
+		rootns = Namespace(
+			'',
+			f='http://dummy/foo'
+		)
 
+		@rootns.template('root', ('f:link',))
+		def root(flinks):
+			return flinks
+
+		xmldata = '<root><foo:link xmlns:foo="http://dummy/foo" foo:description="desc"/></root>'
+		omx = OMX((self.foo, root), 'root')
+
+		result = omx.load(StringIO(xmldata))
+		self.assertEquals(result, ['FOO?desc'])
+
+	def test_nsattribute_default(self):
+		rootns = Namespace(
+			'',
+			f='http://dummy/foo'
+		)
+
+		@rootns.template('root', ('f:link',))
+		def root(flinks):
+			return flinks
+
+		xmldata = '<root><link xmlns="http://dummy/foo" description="desc"/></root>'
+		omx = OMX((self.foo, root), 'root')
+
+		result = omx.load(StringIO(xmldata))
+		self.assertEquals(result, ['FOO?desc'])
