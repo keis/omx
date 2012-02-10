@@ -16,20 +16,20 @@ def _expandns(path, references):
 		return path
 	if path.endswith('()'):
 		return path
-	parts = path.split(':', 1)
+	attrib = path.startswith('@')
+	prefix = '@' if attrib else ''
+	parts = path[1 if attrib else 0:].split(':', 1)
 	ns = ''
 	if len(parts) == 2:
 		# Leading : forces namespace less element
 		if parts[0] != '':
 			ns = references[parts[0]]
-	elif references is not None:
+	elif references is not None and not attrib:
 		# Default namespace
 		ns = references['']
 	if ns:
-		if parts[-1].startswith('@'):
-			return '@{%s}%s' % (ns, parts[-1][1:])
-		return '{%s}%s' % (ns, parts[-1])
-	return parts[-1]
+		return '%s{%s}%s' % (prefix, ns, parts[-1])
+	return '%s%s' % (prefix, parts[-1])
 
 
 def path(pstr, references=None):
