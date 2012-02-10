@@ -84,7 +84,7 @@ class Namespace(object):
 
 		self.url = url
 		self.references = references
-		self.references[''] = self.url
+		self.references[''] = self.references['self'] = self.url
 		self._templates = {}
 		self.__prefix = '{%s}' % self.url if len(self.url) > 0 else ''
 
