@@ -178,12 +178,14 @@ class TargetDir(object):
 				yield x
 
 	def get(self, path):
-		path = decl.path(path)
+		if not isinstance(path, (tuple, list)):
+			raise TypeError("path not a tuple: %r" % path)
 		parent, current, target = self.__query(path)
 		return target
 
 	def add(self, path, target):
-		path = decl.path(path)
+		if not isinstance(path, (tuple, list)):
+			raise TypeError("path not a tuple: %r" % path)
 		parent, current, old = self.__query(path, self.fill)
 		if old is not None:
 			raise Exception('Path [%r] already claimed by %r' % (path, old))
@@ -191,19 +193,22 @@ class TargetDir(object):
 		return target
 
 	def remove(self, path):
-		path = decl.path(path)
+		if not isinstance(path, (tuple, list)):
+			raise TypeError("path not a tuple: %r" % path)
 		parent, current, target = self.__query(path)
 		if len(current) > 0:
 			raise Exception('sub-tree not empty')
 		del parent[path[-1]]
 
 	def emptytree(self, path):
-		path = decl.path(path)
+		if not isinstance(path, (tuple, list)):
+			raise TypeError("path not a tuple: %r" % path)
 		parent, current, target = self.__query(path)
 		current.clear()
 
 	def children(self, path):
-		path = decl.path(path)
+		if not isinstance(path, (tuple, list)):
+			raise TypeError("path not a tuple: %r" % path)
 		parent, current, target = self.__query(path)
 		for key, (g, child) in current.items():
 			yield (tuple(path) + (key,), child)
@@ -287,6 +292,8 @@ class OMXState(object):
 
 		if path is None:
 			path = self.path
+		else:
+			path = decl.path(path)
 
 		return self.__targets.get(path)
 
@@ -306,6 +313,8 @@ class OMXState(object):
 	def children(self, path=None):
 		if path is None:
 			path = self.path
+		else:
+			path = decl.path(path)
 
 		return self.__targets.children(path)
 
