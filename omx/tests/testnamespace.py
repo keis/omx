@@ -33,9 +33,9 @@ class BasicLoad(unittest.TestCase):
 	def bar_desc(t):
 		return '?' + ''.join(t)
 
-	baz = Namespace('http://dummy/baz',
-		bar='http://dummy/bar'
-	)
+	baz = Namespace('http://dummy/baz', {
+		'bar': 'http://dummy/bar'
+	})
 	@baz.template('collection', ('bar:link',))
 	def baz_collection(blinks):
 		return ('baz', blinks)
@@ -47,9 +47,9 @@ class BasicLoad(unittest.TestCase):
 			the same namespace
 		'''
 
-		rootns = Namespace('',
-			f='http://dummy/foo',
-		)
+		rootns = Namespace('', {
+			'f': 'http://dummy/foo'
+		})
 
 		@rootns.template('root', ('f:link',))
 		def root(flinks):
@@ -67,9 +67,9 @@ class BasicLoad(unittest.TestCase):
 			another element in the same namespace
 		'''
 
-		rootns = Namespace('',
-			b='http://dummy/bar',
-		)
+		rootns = Namespace('', {
+			'b': 'http://dummy/bar'
+		})
 		
 		@rootns.template('root', ('b:link',))
 		def root(blinks):
@@ -87,10 +87,10 @@ class BasicLoad(unittest.TestCase):
 			different namespace
 		'''
 
-		rootns = Namespace('',
-			f='http://dummy/foo',
-			b='http://dummy/bar'
-		)
+		rootns = Namespace('', {
+			'f': 'http://dummy/foo',
+			'b': 'http://dummy/bar'
+		})
 
 		@rootns.template('root', ('f:link','b:link'))
 		def root(flinks, blinks):
@@ -108,9 +108,9 @@ class BasicLoad(unittest.TestCase):
 			another namespace
 		'''
 
-		rootns = Namespace('',
-			z='http://dummy/baz'
-		)
+		rootns = Namespace('', {
+			'z': 'http://dummy/baz'
+		})
 
 		@rootns.template('root', ('z:collection',))
 		def root(zc):
@@ -126,9 +126,9 @@ class BasicLoad(unittest.TestCase):
 		'''
 			Test loading with default namespace set
 		'''
-		rootns = Namespace('',
-			b='http://dummy/bar'
-		)
+		rootns = Namespace('', {
+			'b': 'http://dummy/bar'
+		})
 
 		@rootns.template('root', ('b:link',))
 		def root(blinks):
@@ -141,9 +141,7 @@ class BasicLoad(unittest.TestCase):
 		self.assertEquals(result, ['BAR?desc'])
 
 	def test_nsroot(self):
-		rootns = Namespace(
-			'http://dummy/root',
-		)
+		rootns = Namespace('http://dummy/root')
 
 		@rootns.template('root')
 		def root():
@@ -158,7 +156,7 @@ class BasicLoad(unittest.TestCase):
 	def test_nsattribute(self):
 		rootns = Namespace(
 			'',
-			f='http://dummy/foo'
+			{'f': 'http://dummy/foo'}
 		)
 
 		@rootns.template('root', ('f:link',))
@@ -178,7 +176,7 @@ class BasicLoad(unittest.TestCase):
 
 		rootns = Namespace(
 			'',
-			f='http://dummy/foo'
+			{'f': 'http://dummy/foo'}
 		)
 
 		@rootns.template('root', ('f:link',))

@@ -16,7 +16,7 @@ class Template(object):
 	def __init__(self, match, ptargets=None, ktargets=None,
 			factory=lambda: None,
 			serialiser=lambda obj: ((), {}),
-			references=None
+			nsmap=None
 	):
 		'''
 			`match` the tag this template maps
@@ -32,7 +32,7 @@ class Template(object):
 			`serialiser` a function that will be called with a callback and the
 				object being serialised that should provide the data to save
 
-			`references` a dictionary with namespaces and the names they are
+			`nsmap` a dictionary with namespaces and the names they are
 				referenced by in the path strings in `ptargets` and `ktargets`
 		'''
 
@@ -40,9 +40,9 @@ class Template(object):
 		self._factory = factory
 		self._serialiser = serialiser
 		# Store as sequence of key,value pairs to maintain order of ptargets
-		self.targets = [(decl.target(k, references),v)
+		self.targets = [(decl.target(k, nsmap),v)
 			for k,v in (ktargets or {}).items()]
-		self.targets += [(decl.target(p, references), None)
+		self.targets += [(decl.target(p, nsmap), None)
 			for p in (ptargets or [])]
 
 	def __call__(self, obj):
@@ -74,17 +74,17 @@ class Namespace(object):
 		defining the templates of the namespace
 	'''
 
-	def __init__(self, url, **references):
+	def __init__(self, url, nsmap=None):
 		'''
 			`url` the url of XML namespace
 			
-			any keyword argument `k`=`ns` lets `k' be used to refer to the
-			namespace uri `ns` when defining templates in this namespace.
+			`nsmap` a dictionary with namespaces and the names, the names
+				can be used when defining templates in this namespace
 		'''
 
 		self.url = url
-		self.references = references
-		self.references[''] = self.references['self'] = self.url
+		self.nsmap = nsmap or {}
+		self.nsmap[''] = self.nsmap['self'] = self.url
 		self._templates = {}
 		self.__prefix = '{%s}' % self.url if len(self.url) > 0 else ''
 
@@ -103,7 +103,7 @@ class Namespace(object):
 		def decorator(func):
 			tmpl = Template(
 				name, ptargets, ktargets, func,
-				references=self.references
+				nsmap=self.nsmap
 			)
 			self.add_template(tmpl)
 			return tmpl
