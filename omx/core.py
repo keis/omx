@@ -124,8 +124,10 @@ class TemplateData(object):
 		for t in self.values:
 			if t.name is None:
 				if t.singleton and t.empty:
-					raise Exception("Missing argument (arg %d to %s)" %
-						(len(args) + 1, self.template.match))
+					raise Exception(
+						"Missing argument (arg %d to %s): %r" %
+						(len(args) + 1, self.template.match)
+					)
 				args.append(t.get())
 			else:
 				if not t.empty or not t.singleton:

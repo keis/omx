@@ -17,6 +17,7 @@ class LoadState(OMXState):
 			any attribute targets registered for the element
 		'''
 		namespace = element.nsmap.get(element.prefix, '')
+		nsprefix = '{%s}' % namespace if namespace else ''
 		self.path.append(element.tag)
 
 		try:
@@ -24,8 +25,10 @@ class LoadState(OMXState):
 		except KeyError as e:
 			# An early exit branch should be added to push/pop for the case
 			# when a subtree is not mapped to a object
-			raise Exception("SKIP not implemented (element without target '%s')"
-				% element.tag)
+			raise Exception(
+				"element without target '%s' @ %s"
+				% (element.tag, self.path)
+			)
 
 		# Push empty state to text collector
 		self.elemtails.append([])
@@ -41,7 +44,9 @@ class LoadState(OMXState):
 		# Fill attribute targets
 		for k, v in element.attrib.items():
 			try:
-				target = self.get_target(self.path + ['@%s' % k])
+				target = self.get_target(
+					self.path + ['@%s' % k]
+				)
 				target.add(v)
 			except KeyError:
 				pass
