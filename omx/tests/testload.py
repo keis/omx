@@ -1,14 +1,17 @@
 #!/usr/bin/env python2
 
 import unittest
-from StringIO import StringIO
+try:
+	from StringIO import StringIO
+except ImportError:
+	from io import BytesIO as StringIO
 
 from .. import OMX, Template, template
 
 
 class OMXTest(unittest.TestCase):
 	def setUp(self):
-		self.data = StringIO(self.xmldata)
+		self.data = StringIO(self.xmldata.encode('utf-8'))
 
 
 class Basic(OMXTest):
@@ -131,7 +134,8 @@ class Multitarget(OMXTest):
 		@template('root', ('foo/text()|bar/text()',))
 		def roott(fb):
 			r = []
-			map(r.extend, fb)
+			for t in fb:
+				r.extend(t)
 			return r
 		omx = OMX((roott,), 'root')
 
@@ -162,7 +166,7 @@ class Context(OMXTest):
 
 	def test_ids(self):
 		roott = Template('root', ('foo', 'bar', 'context()'), {},
-			lambda foo, bar, context: context['ids'].keys())
+			lambda foo, bar, context: list(context['ids'].keys()))
 		foot = Template('foo', (), {},
 			lambda: 'foo')
 		bart = Template('bar', (), {},

@@ -20,13 +20,13 @@ class Position(unittest.TestCase):
 
 	def test_simple(self):
 		foo = self.dir.add(('foo',), 'foo')
-		self.assertEquals(foo, 'foo')
+		self.assertEqual(foo, 'foo')
 		self.assertFalse(self.dir.empty)
 		self.assertEqual(self.dir.get(('foo',)), foo)
 
 	def test_duplicate(self):
 		foo = self.dir.add(('base', 'foo'), 'foo')
-		self.assertEquals(foo, 'foo')
+		self.assertEqual(foo, 'foo')
 		self.assertFalse(self.dir.empty)
 		self.assertRaises(Exception, self.dir.add, ('base', 'foo'), 'foo')
 
@@ -34,8 +34,8 @@ class Position(unittest.TestCase):
 		foo = self.dir.add(('base', 'foo'), 'foo')
 		bar = self.dir.add(('base', 'foo', 'bar'), 'bar')
 		
-		self.assertEquals(foo, 'foo')
-		self.assertEquals(bar, 'bar')
+		self.assertEqual(foo, 'foo')
+		self.assertEqual(bar, 'bar')
 		self.assertFalse(self.dir.empty)
 		self.assertIs(self.dir.get(('base',)), None)
 		self.assertIs(self.dir.get(('base', 'foo')), foo)
@@ -45,8 +45,8 @@ class Position(unittest.TestCase):
 		bar = self.dir.add(('base', 'foo', 'bar'), 'bar')
 		foo = self.dir.add(('base', 'foo'), 'foo')
 
-		self.assertEquals(foo, 'foo')
-		self.assertEquals(bar, 'bar')
+		self.assertEqual(foo, 'foo')
+		self.assertEqual(bar, 'bar')
 		self.assertFalse(self.dir.empty)
 		self.assertIs(self.dir.get(('base',)), None)
 		self.assertIs(self.dir.get(('base', 'foo')), foo)
@@ -55,7 +55,7 @@ class Position(unittest.TestCase):
 	def test_intermediate(self):
 		foo = self.dir.add(('base', 'foo', 'foo', 'foo'), 'foo')
 
-		self.assertEquals(foo, 'foo')
+		self.assertEqual(foo, 'foo')
 		self.assertFalse(self.dir.empty)
 		self.assertIs(self.dir.get(('base',)), None)
 		self.assertIs(self.dir.get(('base', 'foo')), None)
@@ -73,33 +73,33 @@ class Collection(unittest.TestCase):
 		self.dir = TargetDir()
 
 	def test_empty_keys(self):
-		self.assertEquals(list(self.dir.keys()), [])
+		self.assertEqual(list(self.dir.keys()), [])
 
 	def test_empty_values(self):
-		self.assertEquals(list(self.dir.values()), [])
+		self.assertEqual(list(self.dir.values()), [])
 
 	def test_empty_items(self):
-		self.assertEquals(list(self.dir.items()), [])
+		self.assertEqual(list(self.dir.items()), [])
 
 	def test_one_key(self):
 		self.dir.add(('foo', 'bar'), 'FOO')
-		self.assertItemsEqual(
-			list(self.dir.keys()),
-			[('foo', 'bar')]
+		self.assertSetEqual(
+			set(self.dir.keys()),
+			{('foo', 'bar')}
 		)
 
 	def test_one_value(self):
 		self.dir.add(('foo', 'bar'), 'FOO')
-		self.assertItemsEqual(
-			list(self.dir.values()),
-			['FOO']
+		self.assertSetEqual(
+			set(self.dir.values()),
+			{'FOO'}
 		)
 
 	def test_one_item(self):
 		self.dir.add(('foo', 'bar'), 'FOO')
-		self.assertItemsEqual(
-			list(self.dir.items()),
-			[(('foo', 'bar'), 'FOO')]
+		self.assertSetEqual(
+			set(self.dir.items()),
+			{(('foo', 'bar'), 'FOO')}
 		)
 
 class Traverse(unittest.TestCase):
@@ -113,9 +113,9 @@ class Traverse(unittest.TestCase):
 	def test_simple(self):
 		foo = self.dir.add(('foo',), 'foo')
 		t = traverse(self.dir)
-		self.assertEquals(next(t),
+		self.assertEqual(next(t),
 			(('foo',), foo))
-		self.assertEquals(next(t),
+		self.assertEqual(next(t),
 			(('foo',), foo))
 
 	def test_deep(self):
@@ -124,15 +124,15 @@ class Traverse(unittest.TestCase):
 		baz = self.dir.add(('base', 'foo', 'bar', 'baz'), 'baz')
 
 		t = traverse(self.dir)
-		self.assertEquals(next(t),
+		self.assertEqual(next(t),
 			(('base',), None))
-		self.assertEquals(next(t),
+		self.assertEqual(next(t),
 			(('base', 'foo'), foo))
-		self.assertEquals(next(t),
+		self.assertEqual(next(t),
 			(('base', 'foo', 'bar'), bar))
-		self.assertEquals(next(t),
+		self.assertEqual(next(t),
 			(('base', 'foo', 'bar', 'baz'), baz))
-		self.assertEquals(next(t),
+		self.assertEqual(next(t),
 			(('base', 'foo', 'bar', 'baz'), baz))
 
 	def test_wide(self):
@@ -143,15 +143,15 @@ class Traverse(unittest.TestCase):
 
 		t = traverse(self.dir)
 		path, target = next(t)
-		self.assertEquals(target, base)
+		self.assertEqual(target, base)
 
-		visited = []
+		visited = set()
 		for (path, target) in t:
-			visited.append(target)
+			visited.add(target)
 			self.dir.remove(path)
-		self.assertItemsEqual(
+		self.assertSetEqual(
 			visited,
-			[foo, bar, baz, base]
+			{foo, bar, baz, base}
 		)
 
 class Removal(unittest.TestCase):
@@ -207,11 +207,11 @@ class Children(unittest.TestCase):
 		foo = self.dir.add(('base', 'foo'), 'foo')
 		bar = self.dir.add(('base', 'bar'), 'bar')
 
-		c = list(self.dir.children(('base',)))
-		self.assertItemsEqual((
+		c = set(self.dir.children(('base',)))
+		self.assertSetEqual({
 			(('base', 'foo'), foo),
 			(('base', 'bar'), bar)
-		), c)
+		}, c)
 
 	def test_no_children(self):
 		self.dir.add(('base', 'foo'), 'foo')
@@ -234,10 +234,10 @@ class Children(unittest.TestCase):
 		self.dir.add(('test',), 'test')
 		tfoo = self.dir.add(('test', 'foo'), 'tfoo')
 
-		c = list(self.dir.children(('test',)))
-		self.assertItemsEqual((
+		c = set(self.dir.children(('test',)))
+		self.assertEqual({
 			(('test', 'foo'), tfoo),
-		), c)
+		}, c)
 
 	def test_invalid(self):
 		self.dir.add(('base', 'foo'), 'foo')

@@ -5,8 +5,13 @@
 	Placed here in this module because no other place really fit them
 '''
 
-import types
 import re
+
+try:
+	unicode
+	strings = (str, unicode)
+except NameError:
+	strings = str
 
 pathsplit = re.compile('(?:[^/\{]+)|(?:\{[^\}]*\}[^/]*)').findall
 
@@ -33,12 +38,12 @@ def _expandns(path, references):
 
 
 def path(pstr, references=None):
-	if isinstance(pstr, types.StringTypes):
+	if isinstance(pstr, strings):
 		return [_expandns(p, references) for p in pathsplit(pstr.strip(' /'))]
 	return pstr
 
 
 def target(tstr, references=None):
-	if isinstance(tstr, types.StringTypes):
+	if isinstance(tstr, strings):
 		return [path(p, references) for p in tstr.split('|')]
 	return tstr

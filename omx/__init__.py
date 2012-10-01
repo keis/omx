@@ -21,7 +21,7 @@
 __all__ = ('OMX', 'template', 'Template')
 
 from lxml import etree
-from template import template, Template, Namespace
+from .template import template, Template, Namespace
 
 class OMX(object):
 	''' Defines how a XML document is converted into objects '''

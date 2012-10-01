@@ -1,7 +1,7 @@
 # vim: noet:ts=4:sw=4:
 
 import itertools
-import decl
+from . import decl
 
 class Target(object):
 	'''
@@ -212,7 +212,7 @@ class TargetDir(object):
 		if not isinstance(path, (tuple, list)):
 			raise TypeError("path not a tuple: %r" % path)
 		parent, current, target = self.__query(path)
-		for key, (g, child) in current.items():
+		for key, (g, child) in list(current.items()):
 			yield (tuple(path) + (key,), child)
 
 	def keys(self):

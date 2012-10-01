@@ -1,7 +1,6 @@
 #!/usr/bin/env python2
 
 import unittest
-from StringIO import StringIO
 from mock import Mock
 
 from .. import template

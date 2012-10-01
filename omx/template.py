@@ -1,5 +1,5 @@
 from .core import TemplateHint
-import decl
+from . import decl
 
 ## TODO
 # Make Template a type

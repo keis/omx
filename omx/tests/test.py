@@ -34,37 +34,36 @@ class Iterate(unittest.TestCase):
 		i = self.state.itertargets()
 
 		a = next(i)
-		self.assertEquals(a[1], None)
+		self.assertEqual(a[1], None)
 
 		b = next(i)
-		self.assertEquals(b[1], foo)
+		self.assertEqual(b[1], foo)
 
 		c = next(i)
-		self.assertEquals(c[1], bar)
+		self.assertEqual(c[1], bar)
 
 		d = next(i)
-		self.assertEquals(d[1], baz)
+		self.assertEqual(d[1], baz)
 
 		e = next(i)
-		self.assertEquals(e[1], baz)
+		self.assertEqual(e[1], baz)
 
 	def test_wide(self):
 		foo = self.state.add_target('/base/foo', 'foo')
 		bar = self.state.add_target('/base/bar', 'bar')
 		baz = self.state.add_target('/base/baz', 'baz')
 
-		visited = []
-
 		i = self.state.itertargets()
 		path, t = next(i)
-		self.assertEquals(t, None)
+		self.assertEqual(t, None)
 
+		visited = set()
 		for path, t in i:
-			visited.append(t)
+			visited.add(t)
 			self.state.remove_target(path)
 
-		expected = [foo, bar, baz, None]
-		self.assertItemsEqual(visited, expected)
+		expected = {foo, bar, baz, None}
+		self.assertEqual(visited, expected)
 	
 
 class Add(unittest.TestCase):

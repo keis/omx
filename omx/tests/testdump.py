@@ -1,7 +1,10 @@
 #!/usr/bin/env python2
 
 import unittest
-from StringIO import StringIO
+try:
+	from StringIO import StringIO
+except ImportError:
+	from io import BytesIO as StringIO
 
 from .. import OMX, Template
 
@@ -21,7 +24,7 @@ class Dump(unittest.TestCase):
 
 		out = StringIO()
 		result.write(out)
-		self.assertEqual(out.getvalue(), expected)
+		self.assertEqual(out.getvalue().decode('utf-8'), expected)
 
 	def test_deep(self):
 		expected = '<rec><rec><rec><rec><rec><rec/></rec></rec></rec></rec></rec>'
@@ -42,7 +45,7 @@ class Dump(unittest.TestCase):
 
 		out = StringIO()
 		result.write(out)
-		self.assertEqual(out.getvalue(), expected)
+		self.assertEqual(out.getvalue().decode('utf-8'), expected)
 
 	def test_intermediate(self):
 		expected = '<root><persons><person name="foo"/><person name="bar"/></persons></root>'
@@ -60,7 +63,7 @@ class Dump(unittest.TestCase):
 
 		out = StringIO()
 		result.write(out)
-		self.assertEqual(out.getvalue(), expected)
+		self.assertEqual(out.getvalue().decode('utf-8'), expected)
 
 	def test_intermediate_root(self):
 		expected = '''<root><items><item key="foo">fooz</item><item key="bar">barz</item></items></root>'''
@@ -73,7 +76,7 @@ class Dump(unittest.TestCase):
 		result = omx.dump([('foo', 'fooz',), ('bar', 'barz')])
 		out = StringIO()
 		result.write(out)
-		self.assertEqual(out.getvalue(), expected)
+		self.assertEqual(out.getvalue().decode('utf-8'), expected)
 
 class Multitarget(unittest.TestCase):
 	def test_multitarget(self):
@@ -97,7 +100,7 @@ class Multitarget(unittest.TestCase):
 		result = omx.dump(['foo', 'bar', 'foo'])
 		out = StringIO()
 		result.write(out)
-		self.assertEqual(out.getvalue(), expected)
+		self.assertEqual(out.getvalue().decode('utf-8'), expected)
 
 if __name__ == '__main__':
 	unittest.main()

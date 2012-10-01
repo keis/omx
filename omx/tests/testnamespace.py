@@ -1,7 +1,10 @@
 #!/usr/bin/env python2
 
 import unittest
-from StringIO import StringIO
+try:
+	from StringIO import StringIO
+except ImportError:
+	from io import BytesIO as StringIO
 
 from .. import OMX, Template, template, Namespace
 
@@ -58,8 +61,8 @@ class BasicLoad(unittest.TestCase):
 		xmldata = '<root><foo:link xmlns:foo="http://dummy/foo"/><alias:link xmlns:alias="http://dummy/foo"/></root>'
 		omx = OMX((self.foo, root), 'root')
 
-		result = omx.load(StringIO(xmldata))
-		self.assertEquals(result, ['FOO', 'FOO'])
+		result = omx.load(StringIO(xmldata.encode('utf-8')))
+		self.assertEqual(result, ['FOO', 'FOO'])
 
 	def test_load_nested(self):
 		'''
@@ -78,8 +81,8 @@ class BasicLoad(unittest.TestCase):
 		xmldata = '<root xmlns:bar="http://dummy/bar"><bar:link><bar:description>D</bar:description></bar:link><bar:link/></root>'
 		omx = OMX((self.bar, root), 'root')
 
-		result = omx.load(StringIO(xmldata))
-		self.assertEquals(result, ['BAR?D', 'BAR'])
+		result = omx.load(StringIO(xmldata.encode('utf-8')))
+		self.assertEqual(result, ['BAR?D', 'BAR'])
 
 	def test_load_parallel(self):
 		'''
@@ -99,8 +102,8 @@ class BasicLoad(unittest.TestCase):
 		xmldata = '<root><foo:link xmlns:foo="http://dummy/foo"/><bar:link xmlns:bar="http://dummy/bar"/></root>'
 		omx = OMX((self.foo, self.bar, root), 'root')
 
-		result = omx.load(StringIO(xmldata))
-		self.assertEquals(result, (['FOO'], ['BAR']))
+		result = omx.load(StringIO(xmldata.encode('utf-8')))
+		self.assertEqual(result, (['FOO'], ['BAR']))
 
 	def test_load_cross(self):
 		'''
@@ -119,8 +122,8 @@ class BasicLoad(unittest.TestCase):
 		xmldata = '<root xmlns:zz="http://dummy/baz" xmlns:b="http://dummy/bar"><zz:collection><b:link/></zz:collection></root>'
 		omx = OMX((self.baz, self.bar, root), 'root')
 
-		result = omx.load(StringIO(xmldata))
-		self.assertEquals(result, [('baz', ['BAR'])])
+		result = omx.load(StringIO(xmldata.encode('utf-8')))
+		self.assertEqual(result, [('baz', ['BAR'])])
 
 	def test_load_defaultns(self):
 		'''
@@ -137,8 +140,8 @@ class BasicLoad(unittest.TestCase):
 		xmldata = '<root><link xmlns="http://dummy/bar"><description>desc</description></link></root>'
 		omx = OMX((self.bar, root), 'root')
 
-		result = omx.load(StringIO(xmldata))
-		self.assertEquals(result, ['BAR?desc'])
+		result = omx.load(StringIO(xmldata.encode('utf-8')))
+		self.assertEqual(result, ['BAR?desc'])
 
 	def test_nsroot(self):
 		rootns = Namespace('http://dummy/root')
@@ -150,8 +153,8 @@ class BasicLoad(unittest.TestCase):
 		xmldata = '<root xmlns="http://dummy/root"></root>'
 		omx = OMX((rootns,), '{http://dummy/root}root')
 
-		result = omx.load(StringIO(xmldata))
-		self.assertEquals(result, 'ROOT')
+		result = omx.load(StringIO(xmldata.encode('utf-8')))
+		self.assertEqual(result, 'ROOT')
 
 	def test_nsattribute(self):
 		rootns = Namespace(
@@ -166,8 +169,8 @@ class BasicLoad(unittest.TestCase):
 		xmldata = '<root><foo:link xmlns:foo="http://dummy/foo" foo:description="desc"/></root>'
 		omx = OMX((self.foo, root), 'root')
 
-		result = omx.load(StringIO(xmldata))
-		self.assertEquals(result, ['FOO?desc'])
+		result = omx.load(StringIO(xmldata.encode('utf-8')))
+		self.assertEqual(result, ['FOO?desc'])
 
 	def test_nsattribute_default(self):
 		'''
@@ -186,5 +189,5 @@ class BasicLoad(unittest.TestCase):
 		xmldata = '<root><link xmlns="http://dummy/foo" date="now"/></root>'
 		omx = OMX((self.foo, root), 'root')
 
-		result = omx.load(StringIO(xmldata))
-		self.assertEquals(result, ['FOO?now'])
+		result = omx.load(StringIO(xmldata.encode('utf-8')))
+		self.assertEqual(result, ['FOO?now'])
