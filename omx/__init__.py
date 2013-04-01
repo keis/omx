@@ -1,15 +1,14 @@
 #!/usr/bin/env python2
-# vim: noet:ts=4:sw=4:
-'''
-	Omx Maps XML
+# vim: ts=4:sw=4:
+'''Omx Maps XML
 
-	A module for mapping XML into python objects by rules defined by templates
+A module for mapping XML into python objects by rules defined by templates
 
-	This module uses xpath like paths to designate elements in the tree, but
-	supports far from all parts of the specification (thus xpath like). In
-	addition to simple relative paths attributes may be access with @-symbol
-	and the text of a node with text(), but no other xpath functions is
-	supported.
+This module uses xpath like paths to designate elements in the tree, but
+supports far from all parts of the specification (thus xpath like). In
+addition to simple relative paths attributes may be access with @-symbol
+and the text of a node with text(), but no other xpath functions is
+supported.
 '''
 
 ## TODO / Wishlist
@@ -24,69 +23,74 @@ from lxml import etree
 from .template import template, Template, Namespace
 
 class OMX(object):
-	''' Defines how a XML document is converted into objects '''
+    ''' Defines how a XML document is converted into objects '''
 
-	def __init__(self, namespace, root):
-		self.root = root
-		self.ns = {}
+    def __init__(self, namespace, root):
+        self.root = root
+        self.ns = {}
 
-		templates = []
-		for ns in namespace:
-			if isinstance(ns, Template):
-				templates.append(ns)
-			else:
-				self.ns[ns.url] = ns
+        templates = []
+        for ns in namespace:
+            if isinstance(ns, Template):
+                templates.append(ns)
+            else:
+                self.ns[ns.url] = ns
 
-		# Add any free templates to the unnamed namespace
-		if len(templates) > 0:
-			if '' not in self.ns:
-				self.ns[''] = ns = Namespace('')
-			else:
-				ns = self.ns['']
+        # Add any free templates to the unnamed namespace
+        if len(templates) > 0:
+            if '' not in self.ns:
+                self.ns[''] = ns = Namespace('')
+            else:
+                ns = self.ns['']
 
-			for t in templates:
-				ns.add_template(t)
+            for t in templates:
+                ns.add_template(t)
 
-	def get_template(self, namespace, path):
-		''' Get the template used to map path into a object '''
-		return self.ns[namespace].get_template(path)
+    def get_template(self, namespace, path):
+        ''' Get the template used to map path into a object '''
+        return self.ns[namespace].get_template(path)
 
-	def load(self, xmldata):
-		from .load import LoadState
-		''' Maps 'xmldata' into objects as defined by the templates '''
-		state = LoadState(self)
-		target = decl.target(self.root)
-		root_target = state.add_target(target, 'root', all(len(x) == 1 for x in target))
+    def load(self, xmldata):
+        from .load import LoadState
+        ''' Maps 'xmldata' into objects as defined by the templates '''
+        state = LoadState(self)
+        target = decl.target(self.root)
+        root_target = state.add_target(target, 'root', all(len(x) == 1 for x in target))
 
-		for event, element in etree.iterparse(xmldata, events=('start', 'end')):
-			if event == 'start':
-				state.push(element)
-			elif event == 'end':
-				state.pop(element)
-				element.clear()
-			else:  # pragma: no cover
-				assert False
+        try:
+            for event, element in etree.iterparse(xmldata, events=('start', 'end')):
+                if event == 'start':
+                    state.push(element)
+                elif event == 'end':
+                    state.pop(element)
+                    element.clear()
+                else:  # pragma: no cover
+                    assert False
+        # lxml bug workaround
+        except etree.XMLSyntaxError as e:
+            if e.text is not None:
+                raise e
 
-		return root_target.get()
+        return root_target.get()
 
-	def dump(self, obj):
-		''' Maps 'obj' into a xml as defined by the templates '''
-		from .dump import DumpState
-		state = DumpState(self)
-		target = state.add_target(self.root, 'root', ('/' not in self.root))
-		target.set(obj)
+    def dump(self, obj):
+        ''' Maps 'obj' into a xml as defined by the templates '''
+        from .dump import DumpState
+        state = DumpState(self)
+        target = state.add_target(self.root, 'root', ('/' not in self.root))
+        target.set(obj)
 
-		stack = []
-		for event, element in state.dump():
-			if event == 'start':
-				if stack:
-					stack[-1].append(element)
-				else:
-					tree = etree.ElementTree(element)
-				stack.append(element)
-			elif event == 'end':
-				element = stack.pop()
-			else:
-				assert False
+        stack = []
+        for event, element in state.dump():
+            if event == 'start':
+                if stack:
+                    stack[-1].append(element)
+                else:
+                    tree = etree.ElementTree(element)
+                stack.append(element)
+            elif event == 'end':
+                element = stack.pop()
+            else:
+                assert False
 
-		return tree
+        return tree
