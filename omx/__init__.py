@@ -21,6 +21,7 @@ __all__ = ('OMX', 'template', 'Template')
 
 from lxml import etree
 from .template import template, Template, Namespace
+from .target import Singleton
 
 class OMX(object):
     ''' Defines how a XML document is converted into objects '''
@@ -54,8 +55,10 @@ class OMX(object):
         from .load import LoadState
         ''' Maps 'xmldata' into objects as defined by the templates '''
         state = LoadState(self)
-        target = decl.target(self.root)
-        root_target = state.add_target(target, 'root', all(len(x) == 1 for x in target))
+        cls, paths = decl.target(self.root)
+        if all(len(x) == 1 for x in paths):
+            cls = Singleton
+        root_target = state.add_target((cls, paths), 'root', )
 
         try:
             for event, element in etree.iterparse(xmldata, events=('start', 'end')):
@@ -77,7 +80,10 @@ class OMX(object):
         ''' Maps 'obj' into a xml as defined by the templates '''
         from .dump import DumpState
         state = DumpState(self)
-        target = state.add_target(self.root, 'root', ('/' not in self.root))
+        cls, paths = decl.target(self.root)
+        if '/' not in self.root:
+            cls = Singleton
+        target = state.add_target((cls, paths), 'root')
         target.set(obj)
 
         stack = []

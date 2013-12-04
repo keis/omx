@@ -6,6 +6,7 @@
 '''
 
 import re
+from .target import Target, Singleton
 
 try:
     unicode
@@ -45,5 +46,17 @@ def path(pstr, references=None):
 
 def target(tstr, references=None):
     if isinstance(tstr, strings):
-        return [path(p, references) for p in tstr.split('|')]
+        paths = [path(p, references) for p in tstr.split('|')]
+        cls = Singleton if singleton(paths) else Target
+
+        return (cls, paths)
     return tstr
+
+
+def singleton(paths):
+    if len(paths) > 1:
+        return False
+    path, = paths
+    if len(path) > 1:
+        return False
+    return path[-1][0] == '@' or path[-1].endswith('()')

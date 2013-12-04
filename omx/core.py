@@ -2,80 +2,7 @@
 
 import itertools
 from . import decl
-
-class Target(object):
-    '''
-        Holds the data passed to a factory as 'name'
-
-        In general 'data' will be a list of objects created from other templates,
-        but may be string when mapped to a attribute or text()
-
-        During load the last item may be an instance of TemplateData.
-    '''
-    ## TODO
-    # check the invariants when setting data
-
-    def __init__(self, name, singleton):
-        self.name = name
-        self.singleton = singleton
-        self._data = None if singleton else []
-
-    def __repr__(self):
-        return '<Target %s (%s)>' % (self.name, len(self))
-
-    def __len__(self):
-        if self.singleton:
-            return 0 if self._data is None else 1
-        return len(self._data)
-
-    @property
-    def empty(self):
-        if self.singleton:
-            return self._data is None
-        return len(self._data) == 0
-
-    @property
-    def value(self):
-        if self.singleton:
-            if self._data is None:
-                raise IndexError("No value set")
-            return self._data
-        return self._data[-1]
-
-    @value.setter
-    def value(self, val):
-        if self.singleton:
-            self._data = val
-        else:
-            self._data[-1] = val
-
-    def add(self, value):
-        if self.singleton:
-            if self._data is not None:
-                raise Exception("Value already set for singleton target")
-            self._data = value
-        else:
-            self._data.append(value)
-
-    def pop(self):
-        if self.singleton:
-            if self._data is None:
-                raise IndexError("No value set")
-            value = self._data
-            self._data = None
-        else:
-            value = self._data.pop()
-
-        return value
-
-    def get(self):
-        return self._data
-
-    def set(self, d):
-        if not self.singleton:
-            d = list(d)[::-1]
-        self._data = d
-
+from .target import Target
 
 class TemplateHint(object):
     '''
@@ -256,7 +183,7 @@ class OMXState(object):
         self.path = []
         self.__targets = TargetDir()
 
-    def add_target(self, path, name, singleton=None):
+    def add_target(self, path, name):
         '''
             Registers elements at `path` relative the current path to be saved
             in new Target named `name`.
@@ -266,15 +193,11 @@ class OMXState(object):
 
         # combine path(s) with current path and detect if the path
         # should be marked as a singleton target
-        paths = decl.target(path)
-        indirect = any(len(p) > 1 for p in paths)
-        if singleton is None:
-            singleton = not indirect and \
-                all(p[-1][0] == '@' or p[-1].endswith('()') for p in paths)
+        cls, paths = decl.target(path)
         paths = [tuple((self.path or []) + p) for p in paths]
 
         # Create handle
-        target = Target(name, singleton)
+        target = cls(name)
 
         for path in paths:
             self.__targets.add(path, target)

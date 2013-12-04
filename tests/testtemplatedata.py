@@ -15,7 +15,7 @@ def positional(aa, bb):
 class TestCreate(unittest.TestCase):
     def setUp(self):
         self.state = Mock()
-        self.state.add_target = lambda path, name: Target(name, False)
+        self.state.add_target = lambda path, name: Target(name)
 
     def test_positional(self):
         t = TemplateData(positional, self.state)
