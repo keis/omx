@@ -7,73 +7,78 @@ class Target(object):
 
         During load the last item may be an instance of TemplateData.
     '''
+
+    singleton = False
+
     ## TODO
     # check the invariants when setting data
 
     def __init__(self, name):
         self.name = name
-        self.singleton = False
         self._data = []
 
     def __repr__(self):
         return '<Target %s (%s)>' % (self.name, len(self))
 
     def __len__(self):
-        if self.singleton:
-            return 0 if self._data is None else 1
         return len(self._data)
 
     @property
     def empty(self):
-        if self.singleton:
-            return self._data is None
-        return len(self._data) == 0
+        return len(self) == 0
 
     @property
     def value(self):
-        if self.singleton:
-            if self._data is None:
-                raise IndexError("No value set")
-            return self._data
         return self._data[-1]
 
     @value.setter
     def value(self, val):
-        if self.singleton:
-            self._data = val
-        else:
-            self._data[-1] = val
+        self._data[-1] = val
 
     def add(self, value):
-        if self.singleton:
-            if self._data is not None:
-                raise Exception("Value already set for singleton target")
-            self._data = value
-        else:
-            self._data.append(value)
+        self._data.append(value)
 
     def pop(self):
-        if self.singleton:
-            if self._data is None:
-                raise IndexError("No value set")
-            value = self._data
-            self._data = None
-        else:
-            value = self._data.pop()
-
-        return value
+        return self._data.pop()
 
     def get(self):
         return self._data
 
     def set(self, d):
-        if not self.singleton:
-            d = list(d)[::-1]
-        self._data = d
+        self._data = list(d)[::-1]
 
 
 class Singleton(Target):
+    singleton = True
+
     def __init__(self, name):
         Target.__init__(self, name)
-        self.singleton = True
         self._data = None
+
+    def __len__(self):
+        return 0 if self._data is None else 1
+
+    @property
+    def value(self):
+        if self._data is None:
+            raise IndexError("No value set")
+        return self._data
+
+    @value.setter
+    def value(self, val):
+        self._data = val
+
+    def add(self, value):
+        if self._data is not None:
+            raise Exception("Value already set for singleton target")
+        self._data = value
+
+    def pop(self):
+        if self._data is None:
+            raise IndexError("No value set")
+        value = self._data
+        self._data = None
+        return value
+
+    def set(self, d):
+        self._data = d
