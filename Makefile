@@ -1,4 +1,6 @@
 all: tests
 
+.PHONY: tests
+
 tests:
-	python -m unittest discover
+	nosetests tests
