@@ -1,8 +1,8 @@
 # vim: ts=4:sw=4:
 
 import itertools
-from . import decl
 from .target import Target
+
 
 class TemplateHint(object):
     '''
@@ -217,8 +217,6 @@ class OMXState(object):
 
         if path is None:
             path = self.path
-        else:
-            path = decl.path(path)
 
         return self.__targets.get(path)
 
@@ -238,8 +236,6 @@ class OMXState(object):
     def children(self, path=None):
         if path is None:
             path = self.path
-        else:
-            path = decl.path(path)
 
         return self.__targets.children(path)
 
