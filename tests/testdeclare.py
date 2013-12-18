@@ -112,3 +112,8 @@ def test_singleton_target():
 def test_multi_attribute_target():
     assert_that(target('@foo|@bar'),
                 equal_to((Target, [['@foo'], ['@bar']])))
+
+
+def test_target_path_list():
+    assert_that(target(['foo', 'bar/baz']),
+                equal_to((Target, [['foo'], ['bar', 'baz']])))
