@@ -183,9 +183,9 @@ class OMXState(object):
         self.path = []
         self.__targets = TargetDir()
 
-    def add_target(self, path, name):
+    def add_target(self, target, name):
         '''
-            Registers elements at `path` relative the current path to be saved
+            Registers elements of `target` relative the current path to be saved
             in new Target named `name`.
 
             Returns the new `Target` instance.
@@ -193,16 +193,16 @@ class OMXState(object):
 
         # combine path(s) with current path and detect if the path
         # should be marked as a singleton target
-        cls, paths = decl.target(path)
+        cls, paths = target
         paths = [tuple((self.path or []) + p) for p in paths]
 
         # Create handle
-        target = cls(name)
+        handle = cls(name)
 
         for path in paths:
-            self.__targets.add(path, target)
+            self.__targets.add(path, handle)
 
-        return target
+        return handle
 
     def has_target(self):
         return not self.__targets.empty
