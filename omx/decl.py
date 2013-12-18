@@ -45,14 +45,18 @@ def path(pstr, references=None):
 
 
 def target(tstr, references=None):
+    cls = None
+
     if isinstance(tstr, tuple) and len(tstr) == 2:
-        return tstr
+        cls, tstr = tstr
 
     if isinstance(tstr, strings):
         tstr = tstr.split('|')
 
     paths = [path(p, references) for p in tstr]
-    cls = Singleton if singleton(paths) else Target
+
+    if cls is None:
+        cls = Singleton if singleton(paths) else Target
 
     return (cls, paths)
 

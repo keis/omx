@@ -117,3 +117,11 @@ def test_multi_attribute_target():
 def test_target_path_list():
     assert_that(target(['foo', 'bar/baz']),
                 equal_to((Target, [['foo'], ['bar', 'baz']])))
+
+
+def test_target_target_type():
+    class DummyTargetType(object):
+        pass
+
+    assert_that(target((DummyTargetType, 'foo')),
+                equal_to((DummyTargetType, [['foo']])))
