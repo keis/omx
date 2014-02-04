@@ -38,7 +38,7 @@ class LoadState(OMXState):
             # Create TemplateData instance to collect data of this element
             template = self.omx.get_template(namespace, self.path)
             data = TemplateData(template, self)
-            target.add(data)
+            target.scratch = data
             if 'id' in element.attrib:
                 self.context['ids'][element.attrib['id']] = data
 
@@ -88,14 +88,15 @@ class LoadState(OMXState):
             return
 
         # Create object from TemplateData and clean up
-        data = target.value
-
+        data = target.scratch
         assert isinstance(data, TemplateData)
+        del target.scratch
+
         self.prune_targets(self.path)
 
         obj = data.create()
 
-        target.value = obj
+        target.add(obj)
 
         # Save in ID dictionary if id is set
         if 'id' in element.attrib:

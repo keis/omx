@@ -10,8 +10,7 @@ from omx import OMX, Template, template, Namespace
 
 class BasicLoad(unittest.TestCase):
     ## Vocabulary
-    foo = Namespace('http://dummy/foo'
-    )
+    foo = Namespace('http://dummy/foo')
     @foo.template(
         'link',
         (),
