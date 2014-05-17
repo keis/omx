@@ -32,9 +32,9 @@ class DumpState(OMXState):
 
             else:
                 if repeat:
-                    assert isinstance(target.value, TemplateData)
+                    assert isinstance(target.scratch, TemplateData)
                     yield 'end', path[-1]
-                    target.pop()
+                    del target.scratch
 
                 if target.empty:
                     self.remove_target(path)
@@ -42,15 +42,15 @@ class DumpState(OMXState):
                     continue
 
                 # Set up new template data
-                if isinstance(target.value, TemplateHint):
-                    template = target.value.template
-                    value = target.value.obj
+                value = target.pop()
+                if isinstance(value, TemplateHint):
+                    template, value = value.template, value.obj
                 else:
                     template = self.omx.get_template(namespace, path)
-                    value = target.value
+
                 data = TemplateData(template, self)
                 data.dump(value)
-                target.value = data
+                target.scratch = data
 
                 # Create element
                 element = etree.Element(data.template.match)

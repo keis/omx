@@ -9,6 +9,7 @@ class Target(object):
     '''
 
     singleton = False
+    scratch = None
 
     ## TODO
     # check the invariants when setting data
@@ -18,7 +19,7 @@ class Target(object):
         self._data = []
 
     def __repr__(self):
-        return '<Target %s (%s)>' % (self.name, len(self))
+        return '<Target(name=%r, size=%r, clean=%r)>' % (self.name, len(self), not self.scratch)
 
     def __len__(self):
         return len(self._data)
@@ -26,14 +27,6 @@ class Target(object):
     @property
     def empty(self):
         return len(self) == 0
-
-    @property
-    def value(self):
-        return self._data[-1]
-
-    @value.setter
-    def value(self, val):
-        self._data[-1] = val
 
     def add(self, value):
         self._data.append(value)

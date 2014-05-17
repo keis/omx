@@ -15,7 +15,7 @@ class Template(object):
 
     def __init__(self, match, ptargets=None, ktargets=None,
             factory=lambda: None,
-            serialiser=lambda obj: ((), {}),
+            serialiser=lambda values, obj: values(obj),
             nsmap=None
     ):
         '''

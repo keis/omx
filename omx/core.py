@@ -68,10 +68,14 @@ class TemplateData(object):
             args = list(args)
             args.reverse()
             for t in self.values:
-                if t.name is None:
-                    t.set(args.pop())
-                else:
-                    t.set(kwargs[t.name])
+                try:
+                    if t.name is None:
+                        value = args.pop()
+                    else:
+                        value = kwargs[t.name]
+                except (IndexError, KeyError) as e:
+                    raise KeyError('No value given for %r' % t)
+                t.set(value)
         self.template._serialiser(values, obj)
 
 
@@ -245,7 +249,7 @@ class OMXState(object):
                 v = at.pop()
                 if at.empty:
                     self.__targets.remove(ap)
-                yield ap[-1][1:], v
+                yield ap[-1][1:], str(v)
 
     def get_text(self, path=None):
         for ap, at in self.children(path):
