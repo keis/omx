@@ -1,8 +1,8 @@
 # vim: ts=4:sw=4:
 
 import itertools
-from . import decl
 from .target import Target
+
 
 class TemplateHint(object):
     '''
@@ -68,10 +68,14 @@ class TemplateData(object):
             args = list(args)
             args.reverse()
             for t in self.values:
-                if t.name is None:
-                    t.set(args.pop())
-                else:
-                    t.set(kwargs[t.name])
+                try:
+                    if t.name is None:
+                        value = args.pop()
+                    else:
+                        value = kwargs[t.name]
+                except (IndexError, KeyError) as e:
+                    raise KeyError('No value given for %r' % t)
+                t.set(value)
         self.template._serialiser(values, obj)
 
 
@@ -183,9 +187,9 @@ class OMXState(object):
         self.path = []
         self.__targets = TargetDir()
 
-    def add_target(self, path, name):
+    def add_target(self, target, name):
         '''
-            Registers elements at `path` relative the current path to be saved
+            Registers elements of `target` relative the current path to be saved
             in new Target named `name`.
 
             Returns the new `Target` instance.
@@ -193,16 +197,16 @@ class OMXState(object):
 
         # combine path(s) with current path and detect if the path
         # should be marked as a singleton target
-        cls, paths = decl.target(path)
+        cls, paths = target
         paths = [tuple((self.path or []) + p) for p in paths]
 
         # Create handle
-        target = cls(name)
+        handle = cls(name)
 
         for path in paths:
-            self.__targets.add(path, target)
+            self.__targets.add(path, handle)
 
-        return target
+        return handle
 
     def has_target(self):
         return not self.__targets.empty
@@ -217,8 +221,6 @@ class OMXState(object):
 
         if path is None:
             path = self.path
-        else:
-            path = decl.path(path)
 
         return self.__targets.get(path)
 
@@ -238,8 +240,6 @@ class OMXState(object):
     def children(self, path=None):
         if path is None:
             path = self.path
-        else:
-            path = decl.path(path)
 
         return self.__targets.children(path)
 
@@ -249,7 +249,7 @@ class OMXState(object):
                 v = at.pop()
                 if at.empty:
                     self.__targets.remove(ap)
-                yield ap[-1][1:], v
+                yield ap[-1][1:], str(v)
 
     def get_text(self, path=None):
         for ap, at in self.children(path):

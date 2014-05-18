@@ -3,7 +3,6 @@
 from omx.decl import path, target
 from omx.target import Target, Singleton
 from hamcrest import assert_that, equal_to
-import unittest
 
 
 def test_tagname():
@@ -91,6 +90,12 @@ def test_explicit_nons():
     )
 
 
+def test_full_namespace():
+    assert_that(
+        path('{http://test}foo'),
+        equal_to(['{http://test}foo']))
+
+
 def test_explicit_nons_attrib():
     assert_that(
         path('@:boo', references={
@@ -112,3 +117,21 @@ def test_singleton_target():
 def test_multi_attribute_target():
     assert_that(target('@foo|@bar'),
                 equal_to((Target, [['@foo'], ['@bar']])))
+
+
+def test_target_path_list():
+    assert_that(target(['foo', 'bar/baz']),
+                equal_to((Target, [['foo'], ['bar', 'baz']])))
+
+
+def test_full_namespace_target():
+    assert_that(target('{http://test}foo'),
+                equal_to((Target, [['{http://test}foo']])))
+
+
+def test_target_target_type():
+    class DummyTargetType(object):
+        pass
+
+    assert_that(target((DummyTargetType, 'foo')),
+                equal_to((DummyTargetType, [['foo']])))

@@ -4,6 +4,7 @@ import unittest
 
 from omx import OMX, Template
 from omx.core import OMXState, TemplateData
+from omx.decl import target, path
 
 
 class Singleton(unittest.TestCase):
@@ -27,9 +28,9 @@ class Iterate(unittest.TestCase):
         self.state = OMXState(self.omx)
 
     def test_deep(self):
-        foo = self.state.add_target('/base/foo', 'foo')
-        bar = self.state.add_target('/base/foo/bar', 'bar')
-        baz = self.state.add_target('/base/foo/bar/baz', 'baz')
+        foo = self.state.add_target(target('/base/foo'), 'foo')
+        bar = self.state.add_target(target('/base/foo/bar'), 'bar')
+        baz = self.state.add_target(target('/base/foo/bar/baz'), 'baz')
 
         i = self.state.itertargets()
 
@@ -49,9 +50,9 @@ class Iterate(unittest.TestCase):
         self.assertEqual(e[1], baz)
 
     def test_wide(self):
-        foo = self.state.add_target('/base/foo', 'foo')
-        bar = self.state.add_target('/base/bar', 'bar')
-        baz = self.state.add_target('/base/baz', 'baz')
+        foo = self.state.add_target(target('/base/foo'), 'foo')
+        bar = self.state.add_target(target('/base/bar'), 'bar')
+        baz = self.state.add_target(target('/base/baz'), 'baz')
 
         i = self.state.itertargets()
         path, t = next(i)
@@ -73,32 +74,32 @@ class Add(unittest.TestCase):
         self.state = OMXState(self.omx)
 
     def test_duplicate(self):
-        foo = self.state.add_target('/base/foo', 'foo')
-        self.assertRaises(Exception, self.state.add_target, '/base/foo', 'foo')
+        foo = self.state.add_target(target('/base/foo'), 'foo')
+        self.assertRaises(Exception, self.state.add_target, target('/base/foo'), 'foo')
 
     def test_child(self):
-        foo = self.state.add_target('/base/foo', 'foo')
-        bar = self.state.add_target('/base/foo/bar', 'bar')
+        foo = self.state.add_target(target('/base/foo'), 'foo')
+        bar = self.state.add_target(target('/base/foo/bar'), 'bar')
 
-        self.assertTrue(self.state.get_target('/base') is None)
-        self.assertTrue(self.state.get_target('/base/foo') is foo)
-        self.assertTrue(self.state.get_target('/base/foo/bar') is bar)
+        self.assertTrue(self.state.get_target(['base']) is None)
+        self.assertTrue(self.state.get_target(['base', 'foo']) is foo)
+        self.assertTrue(self.state.get_target(['base', 'foo', 'bar']) is bar)
 
     def test_parent(self):
-        bar = self.state.add_target('/base/foo/bar', 'bar')
-        foo = self.state.add_target('/base/foo', 'foo')
+        bar = self.state.add_target(target('/base/foo/bar'), 'bar')
+        foo = self.state.add_target(target('/base/foo'), 'foo')
 
-        self.assertTrue(self.state.get_target('/base') is None)
-        self.assertTrue(self.state.get_target('/base/foo') is foo)
-        self.assertTrue(self.state.get_target('/base/foo/bar') is bar)
+        self.assertTrue(self.state.get_target(['base']) is None)
+        self.assertTrue(self.state.get_target(['base', 'foo']) is foo)
+        self.assertTrue(self.state.get_target(['base', 'foo', 'bar']) is bar)
 
     def test_intermediate(self):
-        foo = self.state.add_target('/base/foo/foo/foo', 'foo')
+        foo = self.state.add_target(target('/base/foo/foo/foo'), 'foo')
 
-        self.assertTrue(self.state.get_target('/base') is None)
-        self.assertTrue(self.state.get_target('/base/foo') is None)
-        self.assertTrue(self.state.get_target('/base/foo/foo') is None)
-        self.assertTrue(self.state.get_target('/base/foo/foo/foo') is foo)
+        self.assertTrue(self.state.get_target(['base']) is None)
+        self.assertTrue(self.state.get_target(['base', 'foo']) is None)
+        self.assertTrue(self.state.get_target(['base', 'foo', 'foo']) is None)
+        self.assertTrue(self.state.get_target(['base', 'foo', 'foo', 'foo']) is foo)
 
 
 class Children(unittest.TestCase):
@@ -108,33 +109,33 @@ class Children(unittest.TestCase):
         self.state = OMXState(self.omx)
 
     def test_basic(self):
-        self.state.add_target('/base/foo', 'foo')
-        self.state.add_target('/base/bar', 'bar')
+        self.state.add_target(target('/base/foo'), 'foo')
+        self.state.add_target(target('/base/bar'), 'bar')
 
-        c = self.state.children('/base')
+        c = self.state.children(['base'])
         c = list(c)
         self.assertTrue(len(c), 2)
 
     def test_no_children(self):
-        self.state.add_target('/base/foo', 'foo')
-        self.state.add_target('/base/bar', 'bar')
+        self.state.add_target(target('/base/foo'), 'foo')
+        self.state.add_target(target('/base/bar'), 'bar')
 
-        c = self.state.children('/base/foo')
+        c = self.state.children(['base', 'foo'])
         self.assertEqual(list(c), [])
 
     def test_level(self):
-        self.state.add_target('/base/foo', 'foo')
-        self.state.add_target('/base/bar', 'bar')
-        self.state.add_target('/test', 'test')
+        self.state.add_target(target('/base/foo'), 'foo')
+        self.state.add_target(target('/base/bar'), 'bar')
+        self.state.add_target(target('/test'), 'test')
 
-        c = self.state.children('/test')
+        c = self.state.children(['test'])
         self.assertEqual(list(c), [])
 
     def test_invalid(self):
-        self.state.add_target('/base/foo', 'foo')
-        self.state.add_target('/base/bar', 'bar')
+        self.state.add_target(target('/base/foo'), 'foo')
+        self.state.add_target(target('/base/bar'), 'bar')
 
-        self.assertRaises(KeyError, list, self.state.children('/test'))
+        self.assertRaises(KeyError, list, self.state.children(['test']))
 
 if __name__ == '__main__':
     unittest.main()

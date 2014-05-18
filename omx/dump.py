@@ -14,11 +14,11 @@ class DumpState(OMXState):
             repeat = lpath == self.path
             self.path = lpath
 
+            if repeat:
+                yield 'end', path[-1]
+
             # this could be refactored by merging the two main branches
             if target is None:
-                if repeat:
-                    yield 'end', path[-1]
-
                 if list(self.children(path)):
                     attributes = dict(self.get_attributes(path))
                     text = self.get_text(path)
@@ -31,26 +31,20 @@ class DumpState(OMXState):
                     self.path.pop()
 
             else:
-                if repeat:
-                    assert isinstance(target.value, TemplateData)
-                    yield 'end', path[-1]
-                    target.pop()
-
                 if target.empty:
                     self.remove_target(path)
                     self.path.pop()
                     continue
 
                 # Set up new template data
-                if isinstance(target.value, TemplateHint):
-                    template = target.value.template
-                    value = target.value.obj
+                value = target.pop()
+                if isinstance(value, TemplateHint):
+                    template, value = value.template, value.obj
                 else:
                     template = self.omx.get_template(namespace, path)
-                    value = target.value
+
                 data = TemplateData(template, self)
                 data.dump(value)
-                target.value = data
 
                 # Create element
                 element = etree.Element(data.template.match)

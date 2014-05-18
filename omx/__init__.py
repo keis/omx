@@ -21,12 +21,14 @@ __all__ = ('OMX', 'template', 'Template')
 
 from lxml import etree
 from .template import template, Template, Namespace
-from .target import Singleton
+from .target import Target, Singleton
 
 class OMX(object):
     ''' Defines how a XML document is converted into objects '''
 
     def __init__(self, namespace, root):
+        _cls, _paths = decl.target(root)
+
         self.root = root
         self.ns = {}
 
