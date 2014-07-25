@@ -9,5 +9,6 @@ setup(
     description='Declarative XML parsing and serialization',
     license='MIT',
     keywords='xml lxml etree declarative',
-    extras_require={'tests': ['PyHamcrest']}
+    install_requires=['lxml'],
+    extras_require={'tests': ['nose', 'mock', 'PyHamcrest']}
 )
