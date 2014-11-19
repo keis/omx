@@ -2,6 +2,7 @@
 
 import unittest
 from hamcrest import assert_that, equal_to, contains_inanyorder
+from .matchers import assert_raises
 try:
     from StringIO import StringIO
 except ImportError:
@@ -56,6 +57,20 @@ class Basic(OMXTest):
         result = omx.load(self.data)
 
         assert_that(result, equal_to({'uid': 'buba', 'bar': [None, None]}))
+
+
+class Incomplete(OMXTest):
+    xmldata = '<foo><bar></foo>'
+
+    def test_raises(self):
+        foot = Template('foo', ('bar',), {},
+                        lambda bar=None: bar)
+        bart = Template('bar', (), {'text()': 'text'},
+                        lambda text=None: ''.join(text))
+        omx = OMX((foot, bart), 'foo')
+
+        with assert_raises(Exception):
+            omx.load(self.data);
 
 
 class Intermediate(OMXTest):
@@ -175,6 +190,7 @@ class Context(OMXTest):
 
         result = omx.load(self.data)
         assert_that(result, contains_inanyorder('FOO', 'BAR'))
+
 
 if __name__ == '__main__':
     unittest.main()

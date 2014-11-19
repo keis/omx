@@ -76,6 +76,9 @@ class OMX(object):
             if e.text is not None:
                 raise e
 
+        if state.path != []:
+            raise Exception("Unexpected end of xml stream")
+
         return root_target.get()
 
     def dump(self, obj):
