@@ -8,9 +8,11 @@ except ImportError:
 
 from omx import OMX, Template, template
 
+
 class OMXTest(unittest.TestCase):
     def setUp(self):
         self.data = StringIO(self.xmldata.encode('utf-8'))
+
 
 class CrissCross(OMXTest):
     xmldata = '<root><foo><i>1</i><s>one</s></foo><foo><i>2</i><s>two</s></foo></root>'

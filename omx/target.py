@@ -10,6 +10,7 @@ class Target(object):
 
     singleton = False
     scratch = None
+    pattern = None
 
     ## TODO
     # check the invariants when setting data
@@ -19,7 +20,7 @@ class Target(object):
         self._data = []
 
     def __repr__(self):
-        return '<Target(name=%r, size=%r, clean=%r)>' % (self.name, len(self), not self.scratch)
+        return '<Target(name=%r, size=%r, pattern=%r)>' % (self.name, len(self), self.pattern)
 
     def __len__(self):
         return len(self._data)

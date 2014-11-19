@@ -52,7 +52,7 @@ class TemplateData(object):
             if t.name is None:
                 if t.singleton and t.empty:
                     raise Exception(
-                        "Missing argument (arg %d to %s): %r" %
+                        "Missing argument (arg %d to %s)" %
                         (len(args) + 1, self.template.match)
                     )
                 args.append(t.get())
@@ -202,6 +202,7 @@ class OMXState(object):
 
         # Create handle
         handle = cls(name)
+        handle.pattern = '|'.join(['/'.join(x) for x in paths])
 
         for path in paths:
             self.__targets.add(path, handle)
