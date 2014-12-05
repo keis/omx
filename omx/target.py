@@ -1,33 +1,37 @@
+
 class Target(object):
+    '''Holds the data passed to a factory as 'name'
+
+    In general 'data' will be a list of objects created from other templates,
+    but may be string when mapped to a attribute or text()
+
+    During load the scratch property may hold the TemplateData that will be the next item.
     '''
-        Holds the data passed to a factory as 'name'
 
-        In general 'data' will be a list of objects created from other templates,
-        but may be string when mapped to a attribute or text()
-
-        During load the last item may be an instance of TemplateData.
-    '''
-
+    # Static field indicating if the target expects a single value
     singleton = False
-    scratch = None
-    pattern = None
 
-    ## TODO
-    # check the invariants when setting data
+    # Used to hold value currently being assembled
+    scratch = None
+
+    # Pattern being collect to this target
+    pattern = None
 
     def __init__(self, name):
         self.name = name
         self._data = []
 
     def __repr__(self):
-        return '<Target(name=%r, size=%r, pattern=%r)>' % (self.name, len(self), self.pattern)
-
-    def __len__(self):
-        return len(self._data)
+        return '<Target(name=%r, pattern=%r)>' % (self.name, self.pattern)
 
     @property
     def empty(self):
-        return len(self) == 0
+        '''True if the target is empty
+
+        A empty target indicates to the dumper to stop processing
+        '''
+
+        return len(self._data) == 0
 
     def add(self, value):
         self._data.append(value)
@@ -49,18 +53,9 @@ class Singleton(Target):
         Target.__init__(self, name)
         self._data = None
 
-    def __len__(self):
-        return 0 if self._data is None else 1
-
     @property
-    def value(self):
-        if self._data is None:
-            raise IndexError("No value set")
-        return self._data
-
-    @value.setter
-    def value(self, val):
-        self._data = val
+    def empty(self):
+        return self._data is None
 
     def add(self, value):
         if self._data is not None:

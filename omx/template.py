@@ -77,7 +77,7 @@ class Namespace(object):
     def __init__(self, url, nsmap=None):
         '''
             `url` the url of XML namespace
-            
+
             `nsmap` a dictionary with namespaces and the names, the names
                 can be used when defining templates in this namespace
         '''
