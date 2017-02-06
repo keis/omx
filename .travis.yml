@@ -7,7 +7,7 @@ python:
 install:
     - pip install -r requirements.txt -r test-requirements.txt
 script:
-    nosetests --with-coverage --cover-package=omx
+    py.test --cov=omx
 after_success:
     coveralls
 sudo: false
