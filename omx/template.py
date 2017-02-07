@@ -13,7 +13,7 @@ class TemplateHint(object):
         self.obj = obj
 
 
-## TODO
+# TODO
 # Make Template a type
 # Instances of Template holds a object, this implies object is to be
 #     serialised/unserialised with the template
@@ -24,36 +24,35 @@ class Template(object):
     '''Defines how elements matched by `match` is converted to objects'''
 
     def __init__(self, match, ptargets=None, ktargets=None,
-            factory=lambda: None,
-            serialiser=lambda values, obj: values(obj),
-            nsmap=None
-    ):
+                 factory=lambda: None,
+                 serialiser=lambda values, obj: values(obj),
+                 nsmap=None):
         '''
-            `match` the tag this template maps
+        `match` the tag this template maps
 
-            `ptargets` a sequence of paths
+        `ptargets` a sequence of paths
 
-            `ktargets` a dictionary mapping paths to names
+        `ktargets` a dictionary mapping paths to names
 
-            `factory` a function or type that will be called with the data
-                defined by `ptargets` as positional arguments and `ktargets` as
-                keyword arguments to create the object.
+        `factory` a function or type that will be called with the data
+            defined by `ptargets` as positional arguments and `ktargets` as
+            keyword arguments to create the object.
 
-            `serialiser` a function that will be called with a callback and the
-                object being serialised that should provide the data to save
+        `serialiser` a function that will be called with a callback and the
+            object being serialised that should provide the data to save
 
-            `nsmap` a dictionary with namespaces and the names they are
-                referenced by in the path strings in `ptargets` and `ktargets`
+        `nsmap` a dictionary with namespaces and the names they are
+            referenced by in the path strings in `ptargets` and `ktargets`
         '''
 
         self.match = match
         self._factory = factory
         self._serialiser = serialiser
         # Store as sequence of key,value pairs to maintain order of ptargets
-        self.targets = [(decl.target(k, nsmap),v)
-            for k,v in (ktargets or {}).items()]
+        self.targets = [(decl.target(k, nsmap), v)
+                        for k, v in (ktargets or {}).items()]
         self.targets += [(decl.target(p, nsmap), None)
-            for p in (ptargets or [])]
+                         for p in (ptargets or [])]
 
     def __call__(self, obj):
         ''' hint that `obj` should be serialised using this template '''
@@ -105,10 +104,9 @@ class Namespace(object):
         self._templates[self.__prefix + template.match] = template
 
     def template(self, name, ptargets=None, ktargets=None):
-        '''
-            Get a decorator that defines a `Template` using `name`, `ktargets'
-            and `ktargets`. see `Template` for information on the meaning of
-            these argumets
+        ''' Decorator that Defines a `Template` in this namespace.
+
+        The decorated function is used as the factory see `Template`.
         '''
         def decorator(func):
             tmpl = Template(
