@@ -1,192 +1,214 @@
-#!/usr/bin/env python2
-
-import unittest
 try:
     from StringIO import StringIO
 except ImportError:
     from io import BytesIO as StringIO
 
-from omx import OMX, Template, template, Namespace
+from omx import OMX, Namespace
+from hamcrest import assert_that, equal_to
+from .matchers import serializes_as
 
-class BasicLoad(unittest.TestCase):
-    ## Vocabulary
-    foo = Namespace('http://dummy/foo')
-    @foo.template(
-        'link',
-        (),
-        {
-            '@self:description': 'desc',
-            '@date': 'date'
-        }
+
+foo = Namespace('http://dummy/foo')
+bar = Namespace('http://dummy/bar')
+baz = Namespace('http://dummy/baz', {
+    'bar': 'http://dummy/bar'
+})
+
+
+@foo.template(
+    'link',
+    (),
+    {
+        '@self:description': 'desc',
+        '@date': 'date'
+    }
+)
+def foo_link(desc=None, date=None):
+    return (
+        'FOO' +
+        ('?' + desc if desc else '') +
+        ('?' + date if date else '')
     )
-    def foo_link(desc=None, date=None):
-        return (
-            'FOO' +
-            ('?' + desc if desc else '') +
-            ('?' + date if date else '')
-        )
 
-    bar = Namespace('http://dummy/bar')
-    @bar.template('link', (), {'description': 'desc'})
-    def bar_link(desc=None):
-        return 'BAR' + (desc[0] if desc else '')
 
-    @bar.template('description', ('text()',))
-    def bar_desc(t):
-        return '?' + ''.join(t)
+@bar.template('link', (), {'description': 'desc'})
+def bar_link(desc=None):
+    return 'BAR' + (desc[0] if desc else '')
 
-    baz = Namespace('http://dummy/baz', {
-        'bar': 'http://dummy/bar'
+
+@bar.template('description', ('text()',))
+def bar_desc(t):
+    return '?' + ''.join(t)
+
+
+@baz.template('collection', ('bar:link',))
+def baz_collection(blinks):
+    return ('baz', blinks)
+
+
+def test_load_alias():
+    '''
+        Test loading a simple structure with two different references to
+        the same namespace
+    '''
+
+    rootns = Namespace('', {
+        'f': 'http://dummy/foo'
     })
-    @baz.template('collection', ('bar:link',))
-    def baz_collection(blinks):
-        return ('baz', blinks)
 
-    ## TESTS
-    def test_alias(self):
-        '''
-            Test loading a simple structure with two different references to
-            the same namespace
-        '''
+    @rootns.template('root', ('f:link',))
+    def root(flinks):
+        return flinks
 
-        rootns = Namespace('', {
-            'f': 'http://dummy/foo'
-        })
+    xmldata = (
+        '<root><foo:link xmlns:foo="http://dummy/foo"/>'
+        '<alias:link xmlns:alias="http://dummy/foo"/></root>')
+    omx = OMX((foo, root), 'root')
 
-        @rootns.template('root', ('f:link',))
-        def root(flinks):
-            return flinks
+    result = omx.load(StringIO(xmldata.encode('utf-8')))
+    assert_that(result, equal_to(['FOO', 'FOO']))
 
-        xmldata = '<root><foo:link xmlns:foo="http://dummy/foo"/><alias:link xmlns:alias="http://dummy/foo"/></root>'
-        omx = OMX((self.foo, root), 'root')
 
-        result = omx.load(StringIO(xmldata.encode('utf-8')))
-        self.assertEqual(result, ['FOO', 'FOO'])
+def test_load_nested():
+    '''
+        Test loading a structure where a template has a reference to
+        another element in the same namespace
+    '''
 
-    def test_load_nested(self):
-        '''
-            Test loading a structure where a template has a reference to
-            another element in the same namespace
-        '''
+    rootns = Namespace('', {
+        'b': 'http://dummy/bar'
+    })
 
-        rootns = Namespace('', {
-            'b': 'http://dummy/bar'
-        })
-        
-        @rootns.template('root', ('b:link',))
-        def root(blinks):
-            return blinks
+    @rootns.template('root', ('b:link',))
+    def root(blinks):
+        return blinks
 
-        xmldata = '<root xmlns:bar="http://dummy/bar"><bar:link><bar:description>D</bar:description></bar:link><bar:link/></root>'
-        omx = OMX((self.bar, root), 'root')
+    xmldata = (
+        '<root xmlns:bar="http://dummy/bar"><bar:link>'
+        '<bar:description>D</bar:description></bar:link><bar:link/></root>')
+    omx = OMX((bar, root), 'root')
 
-        result = omx.load(StringIO(xmldata.encode('utf-8')))
-        self.assertEqual(result, ['BAR?D', 'BAR'])
+    result = omx.load(StringIO(xmldata.encode('utf-8')))
+    assert_that(result, equal_to(['BAR?D', 'BAR']))
 
-    def test_load_parallel(self):
-        '''
-            Test loading a structure with two elements of the same name but of
-            different namespace
-        '''
 
-        rootns = Namespace('', {
-            'f': 'http://dummy/foo',
-            'b': 'http://dummy/bar'
-        })
+def test_load_parallel():
+    '''
+        Test loading a structure with two elements of the same name but of
+        different namespace
+    '''
 
-        @rootns.template('root', ('f:link','b:link'))
-        def root(flinks, blinks):
-            return flinks, blinks
+    rootns = Namespace('', {
+        'f': 'http://dummy/foo',
+        'b': 'http://dummy/bar'
+    })
 
-        xmldata = '<root><foo:link xmlns:foo="http://dummy/foo"/><bar:link xmlns:bar="http://dummy/bar"/></root>'
-        omx = OMX((self.foo, self.bar, root), 'root')
+    @rootns.template('root', ('f:link', 'b:link'))
+    def root(flinks, blinks):
+        return flinks, blinks
 
-        result = omx.load(StringIO(xmldata.encode('utf-8')))
-        self.assertEqual(result, (['FOO'], ['BAR']))
+    xmldata = (
+        '<root><foo:link xmlns:foo="http://dummy/foo"/>'
+        '<bar:link xmlns:bar="http://dummy/bar"/></root>')
+    omx = OMX((foo, bar, root), 'root')
 
-    def test_load_cross(self):
-        '''
-            Test loading with a template that has a reference to a element from
-            another namespace
-        '''
+    result = omx.load(StringIO(xmldata.encode('utf-8')))
+    assert_that(result, equal_to((['FOO'], ['BAR'])))
 
-        rootns = Namespace('', {
-            'z': 'http://dummy/baz'
-        })
 
-        @rootns.template('root', ('z:collection',))
-        def root(zc):
-            return zc
+def test_load_cross():
+    '''
+        Test loading with a template that has a reference to a element from
+        another namespace
+    '''
 
-        xmldata = '<root xmlns:zz="http://dummy/baz" xmlns:b="http://dummy/bar"><zz:collection><b:link/></zz:collection></root>'
-        omx = OMX((self.baz, self.bar, root), 'root')
+    rootns = Namespace('', {
+        'z': 'http://dummy/baz'
+    })
 
-        result = omx.load(StringIO(xmldata.encode('utf-8')))
-        self.assertEqual(result, [('baz', ['BAR'])])
+    @rootns.template('root', ('z:collection',))
+    def root(zc):
+        return zc
 
-    def test_load_defaultns(self):
-        '''
-            Test loading with default namespace set
-        '''
-        rootns = Namespace('', {
-            'b': 'http://dummy/bar'
-        })
+    xmldata = (
+        '<root xmlns:zz="http://dummy/baz" xmlns:b="http://dummy/bar">'
+        '<zz:collection><b:link/></zz:collection></root>')
+    omx = OMX((baz, bar, root), 'root')
 
-        @rootns.template('root', ('b:link',))
-        def root(blinks):
-            return blinks
+    result = omx.load(StringIO(xmldata.encode('utf-8')))
+    assert_that(result, equal_to([('baz', ['BAR'])]))
 
-        xmldata = '<root><link xmlns="http://dummy/bar"><description>desc</description></link></root>'
-        omx = OMX((self.bar, root), 'root')
 
-        result = omx.load(StringIO(xmldata.encode('utf-8')))
-        self.assertEqual(result, ['BAR?desc'])
+def test_load_defaultns():
+    '''
+        Test loading with default namespace set
+    '''
+    rootns = Namespace('', {
+        'b': 'http://dummy/bar'
+    })
 
-    def test_nsroot(self):
-        rootns = Namespace('http://dummy/root')
+    @rootns.template('root', ('b:link',))
+    def root(blinks):
+        return blinks
 
-        @rootns.template('root')
-        def root():
-            return 'ROOT'
+    xmldata = (
+        '<root><link xmlns="http://dummy/bar"><description>desc</description>'
+        '</link></root>')
+    omx = OMX((bar, root), 'root')
 
-        xmldata = '<root xmlns="http://dummy/root"></root>'
-        omx = OMX((rootns,), '{http://dummy/root}root')
+    result = omx.load(StringIO(xmldata.encode('utf-8')))
+    assert_that(result, equal_to(['BAR?desc']))
 
-        result = omx.load(StringIO(xmldata.encode('utf-8')))
-        self.assertEqual(result, 'ROOT')
 
-    def test_nsattribute(self):
-        rootns = Namespace(
-            '',
-            {'f': 'http://dummy/foo'}
-        )
+def test_nsroot():
+    rootns = Namespace('http://dummy/root')
 
-        @rootns.template('root', ('f:link',))
-        def root(flinks):
-            return flinks
+    @rootns.template('root')
+    def root():
+        return 'ROOT'
 
-        xmldata = '<root><foo:link xmlns:foo="http://dummy/foo" foo:description="desc"/></root>'
-        omx = OMX((self.foo, root), 'root')
+    xmldata = '<root xmlns="http://dummy/root"></root>'
+    omx = OMX((rootns,), '{http://dummy/root}root')
 
-        result = omx.load(StringIO(xmldata.encode('utf-8')))
-        self.assertEqual(result, ['FOO?desc'])
+    result = omx.load(StringIO(xmldata.encode('utf-8')))
+    assert_that(result, equal_to('ROOT'))
 
-    def test_nsattribute_default(self):
-        '''
-            The default namespace does *not* apply to attributes
-        '''
 
-        rootns = Namespace(
-            '',
-            {'f': 'http://dummy/foo'}
-        )
+def test_nsattribute():
+    rootns = Namespace(
+        '',
+        {'f': 'http://dummy/foo'}
+    )
 
-        @rootns.template('root', ('f:link',))
-        def root(flinks):
-            return flinks
+    @rootns.template('root', ('f:link',))
+    def root(flinks):
+        return flinks
 
-        xmldata = '<root><link xmlns="http://dummy/foo" date="now"/></root>'
-        omx = OMX((self.foo, root), 'root')
+    xmldata = (
+        '<root><foo:link xmlns:foo="http://dummy/foo" foo:description="desc"/>'
+        '</root>')
+    omx = OMX((foo, root), 'root')
 
-        result = omx.load(StringIO(xmldata.encode('utf-8')))
-        self.assertEqual(result, ['FOO?now'])
+    result = omx.load(StringIO(xmldata.encode('utf-8')))
+    assert_that(result, equal_to(['FOO?desc']))
+
+
+def test_nsattribute_default():
+    '''
+        The default namespace does *not* apply to attributes
+    '''
+
+    rootns = Namespace(
+        '',
+        {'f': 'http://dummy/foo'}
+    )
+
+    @rootns.template('root', ('f:link',))
+    def root(flinks):
+        return flinks
+
+    xmldata = '<root><link xmlns="http://dummy/foo" date="now"/></root>'
+    omx = OMX((foo, root), 'root')
+
+    result = omx.load(StringIO(xmldata.encode('utf-8')))
+    assert_that(result, ['FOO?now'])
