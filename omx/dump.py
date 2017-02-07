@@ -1,7 +1,9 @@
 # vim: ts=4:sw=4:
 
 from lxml import etree
-from .core import OMXState, TemplateData, TemplateHint
+from .core import OMXState, TemplateData
+from .template import TemplateHint
+
 
 class DumpState(OMXState):
     def __init__(self, omx):

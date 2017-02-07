@@ -1,5 +1,17 @@
-from .core import TemplateHint
 from . import decl
+
+
+class TemplateHint(object):
+    '''A template, obj pair
+
+    It's used to disambiguate which template to use when dumping `obj` which is
+    needed when present in a multitarget
+    '''
+
+    def __init__(self, template, obj):
+        self.template = template
+        self.obj = obj
+
 
 ## TODO
 # Make Template a type
@@ -9,9 +21,7 @@ from . import decl
 # Make it inheritable
 
 class Template(object):
-    '''
-        Defines how elements matched by `match` is converted to objects
-    '''
+    '''Defines how elements matched by `match` is converted to objects'''
 
     def __init__(self, match, ptargets=None, ktargets=None,
             factory=lambda: None,

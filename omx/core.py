@@ -4,17 +4,6 @@ import itertools
 from .target import Target
 
 
-class TemplateHint(object):
-    '''
-        A template, obj pair used to disambiguate which template to
-        use when dumping `obj` e.g when present in a multitarget
-    '''
-
-    def __init__(self, template, obj):
-        self.template = template
-        self.obj = obj
-
-
 class TemplateData(object):
     '''
         Collects the data need to create a object as defined by 'template'
